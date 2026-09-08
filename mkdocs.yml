@@ -1,0 +1,94 @@
+site_name: InterView Docs
+site_url: https://texttechnologylab.github.io/InterView/
+site_description: >-
+  Documentation for InterView - the VR interview platform used in the FACES project
+
+repo_url: https://github.com/texttechnologylab/InterView
+repo_name: texttechnologylab/InterView
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Setup Guide: setup.md
+  - Services:
+      - Janus: ./services/janus.md
+      - coturn: ./services/coturn.md
+      - Ubiq Server: ./services/ubiq.md
+      - Logging API: ./services/logging_api.md
+      - Web Client: ./services/web_client.md
+      - Web Client Reliability: ./services/web-client-reliability.md
+      - VR Client: ./services/vr_client.md
+  - Operations: operations.md
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/link
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off
+        name: Switch to system preference
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - navigation.instant
+    - navigation.tabs
+    - navigation.expand
+    - navigation.tracking
+    - navigation.path
+    - search.highlight
+    - search.suggest
+
+extra:
+  homepage: https://texttechnologylab.github.io/InterView/
+  social:
+    - icon: fontawesome/solid/house
+      link: https://www.texttechnologylab.org/
+    - icon: fontawesome/brands/github
+      link: https://github.com/texttechnologylab
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - tables
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
