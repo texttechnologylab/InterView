@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Interview Room - Janus Video Conference</title>
+<script type="text/javascript" src="/dependencies/js/adapter.min.js" ></script>
+<script type="text/javascript" src="/dependencies/js/jquery.min.js" ></script>
+
+<script type="text/javascript" src="/dependencies/js/jquery.blockUI.min.js" ></script>
+<script type="text/javascript" src="/dependencies/js/bootstrap.bundle.min.js"></script>
+<script type="text/javascript" src="/dependencies/js/bootbox.min.js"></script>
+<script type="text/javascript" src="/dependencies/js/toastr.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+<script type="text/javascript" src="settings.js" ></script>
+<script type="text/javascript" src="janus.js" ></script>
+<script type="text/javascript" src="mvideoroom.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/dependencies/js/all.min.css" type="text/css"/>
+<link rel="stylesheet" href="/dependencies/js/toastr.min.css"/>
+<style>
+	body { 
+		margin: 0; 
+		padding: 0; 
+		overflow: hidden; 
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	}
+	.draggable-video {
+		touch-action: none;
+		user-select: none;
+	}
+	.video-container video {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		border-radius: 0.5rem;
+	}
+	.resizable {
+		border: 2px solid transparent;
+		transition: border-color 0.2s;
+	}
+	.resizable:hover {
+		border-color: #3b82f6;
+	}
+	.drag-handle {
+		cursor: move;
+	}
+	.no-video-container {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		border-radius: 0.5rem;
+		color: white;
+		font-size: 3rem;
+	}
+	.top-right {
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+		z-index: 10;
+	}
+	.relative {
+		position: relative;
+	}
+	.hide {
+		display: none !important;
+	}
+	#bitrate {
+		min-width: 150px;
+	}
+	.video-panel {
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+		backdrop-filter: blur(10px);
+		background: rgba(255, 255, 255, 0.95);
+	}
+	.minimized {
+		height: 60px !important;
+		overflow: hidden;
+	}
+	.minimized .video-body {
+		display: none;
+	}
+	.resize-handle {
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		width: 20px;
+		height: 20px;
+		cursor: nwse-resize;
+		z-index: 1000;
+		background: linear-gradient(135deg, transparent 50%, rgba(59, 130, 246, 0.3) 50%);
+	}
+	.resize-handle:hover {
+		background: linear-gradient(135deg, transparent 50%, rgba(59, 130, 246, 0.6) 50%);
+	}
+</style>
+</head>
+<body class="bg-gray-50">
+
+<!-- Top Control Bar -->
+<div class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 px-6 py-3 flex items-center justify-between">
+	<div class="flex items-center space-x-4">
+		<h1 class="text-2xl font-bold text-gray-800">
+			<i class="fas fa-video mr-2 text-blue-600"></i>Interview Room
+		</h1>
+		<span class="badge bg-info px-3 py-1 rounded-full text-sm" id="you"></span>
+	</div>
+	
+	<div class="flex items-center space-x-3">
+		<div class="relative">
+			<select id="video-resolution" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:border-blue-500">
+				<option value="lowres">Low (320x240)</option>
+				<option value="lowres-16:9">Low 16:9 (320x180)</option>
+				<option value="stdres">Standard (640x480)</option>
+				<option value="stdres-16:9">Standard 16:9 (640x360)</option>
+				<option value="hires">HD (1280x720)</option>
+				<option value="fhdres" selected>Full HD (1920x1080)</option>
+				<option value="4kres">4K (3840x2160)</option>
+			</select>
+		</div>
+		<button class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm" id="start">
+			<i class="fas fa-play mr-2"></i>Start Session
+		</button>
+		<button class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors" onclick="toggleLayoutMode()">
+			<i class="fas fa-th-large"></i>
+		</button>
+	</div>
+</div>
+
+<!-- Join Dialog -->
+<div class="hide fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" id="videojoin">
+	<div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+		<div class="text-center mb-6">
+			<div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+				<i class="fas fa-user text-blue-600 text-2xl"></i>
+			</div>
+			<h2 class="text-2xl font-bold text-gray-800">Join Interview Room</h2>
+			<p class="text-gray-600 mt-2">Enter your display name to begin</p>
+		</div>
+		
+		<div id="controls">
+			<div class="hide" id="registernow">
+				<div class="relative">
+					<input 
+						autocomplete="off" 
+						class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg" 
+						type="text" 
+						placeholder="Your name" 
+						id="username" 
+						onkeypress="return checkEnter(this, event);"
+					/>
+				</div>
+				<button 
+					class="w-full mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg" 
+					id="register"
+				>
+					<i class="fas fa-sign-in-alt mr-2"></i>Join Room
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Main Content Area -->
+<div class="hide" id="videos" style="margin-top: 72px; height: calc(100vh - 72px);">
+	<!-- Questionnaire Iframe - Main Content -->
+	<div class="w-full h-full bg-gray-100">
+		<iframe 
+			src="https://survey.example.org/1260000" 
+			class="w-full h-full border-0"
+			title="Interview Questionnaire"
+			id="questionnaire-iframe"
+		></iframe>
+	</div>
+
+	<!-- Draggable Video Panels -->
+	
+	<!-- Local Video (Interviewer) -->
+	<div class="draggable-video video-panel fixed rounded-xl overflow-hidden" 
+		 id="local-video-panel"
+		 style="width: 320px; height: 240px; top: calc(100vh - 260px); left: calc(100vw - 340px); z-index: 100;">
+		<div class="drag-handle bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 flex items-center justify-between cursor-move">
+			<div class="flex items-center space-x-2 text-white">
+				<i class="fas fa-video"></i>
+				<span class="font-semibold text-sm">You (Interviewer)</span>
+				<span class="badge bg-primary hide px-2 py-0.5 rounded text-xs ml-2" id="publisher"></span>
+			</div>
+			<div class="flex items-center space-x-1">
+				<button class="text-white hover:bg-blue-800 p-1 rounded" onclick="minimizePanel('local-video-panel')" title="Minimize">
+					<i class="fas fa-minus text-xs"></i>
+				</button>
+				<button class="text-white hover:bg-blue-800 p-1 rounded hide" onclick="closePanel('local-video-panel')" title="Close">
+					<i class="fas fa-times text-xs"></i>
+				</button>
+				<!-- Bitrate Dropdown -->
+				<div class="btn-group btn-group-sm hide">
+					<button id="bitrateset" class="text-white hover:bg-blue-800 px-2 py-1 rounded text-xs" data-bs-toggle="dropdown">
+						<i class="fas fa-cog"></i>
+					</button>
+					<ul id="bitrate" class="dropdown-menu dropdown-menu-end" role="menu">
+						<a class="dropdown-item" href="#" id="0">No limit</a>
+						<a class="dropdown-item" href="#" id="128">Cap to 128kbit</a>
+						<a class="dropdown-item" href="#" id="256">Cap to 256kbit</a>
+						<a class="dropdown-item" href="#" id="512">Cap to 512kbit</a>
+						<a class="dropdown-item" href="#" id="1024">Cap to 1mbit</a>
+						<a class="dropdown-item" href="#" id="1500">Cap to 1.5mbit</a>
+						<a class="dropdown-item" href="#" id="2000">Cap to 2mbit</a>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div class="video-body bg-gray-900 relative" style="height: calc(100% - 40px);" id="videolocal">
+			<!-- Video will be inserted here by Janus -->
+		</div>
+		<div class="resize-handle"></div>
+	</div>
+
+	<!-- Remote Video 1 (Interviewee 1) -->
+	<div class="draggable-video video-panel fixed rounded-xl overflow-hidden" 
+		 id="remote-video-panel-1"
+		 style="width: 400px; height: 300px; top: 92px; left: 20px; z-index: 100;">
+		<div class="drag-handle bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-2 flex items-center justify-between cursor-move">
+			<div class="flex items-center space-x-2 text-white">
+				<i class="fas fa-user"></i>
+				<span class="font-semibold text-sm">Interviewee</span>
+				<span class="badge bg-info hide px-2 py-0.5 rounded text-xs ml-2" id="remote1"></span>
+			</div>
+			<div class="flex items-center space-x-1">
+				<button class="text-white hover:bg-purple-800 p-1 rounded" onclick="minimizePanel('remote-video-panel-1')" title="Minimize">
+					<i class="fas fa-minus text-xs"></i>
+				</button>
+				<button class="text-white hover:bg-purple-800 p-1 rounded" onclick="closePanel('remote-video-panel-1')" title="Close">
+					<i class="fas fa-times text-xs"></i>
+				</button>
+			</div>
+		</div>
+		<div class="video-body bg-gray-900 relative" style="height: calc(100% - 40px);" id="videoremote1">
+			<!-- Video will be inserted here by Janus -->
+		</div>
+		<div class="resize-handle"></div>
+	</div>
+
+	<!-- Remote Video 2 (Interviewee 2 - Optional) -->
+	<div class="draggable-video video-panel fixed rounded-xl overflow-hidden hide" 
+		 id="remote-video-panel-2"
+		 style="width: 400px; height: 300px; top: 92px; left: calc(100vw - 760px); z-index: 100;">
+		<div class="drag-handle bg-gradient-to-r from-green-600 to-green-700 px-4 py-2 flex items-center justify-between cursor-move">
+			<div class="flex items-center space-x-2 text-white">
+				<i class="fas fa-user"></i>
+				<span class="font-semibold text-sm">Interviewee 2</span>
+				<span class="badge bg-info hide px-2 py-0.5 rounded text-xs ml-2" id="remote2"></span>
+			</div>
+			<div class="flex items-center space-x-1">
+				<button class="text-white hover:bg-green-800 p-1 rounded" onclick="minimizePanel('remote-video-panel-2')" title="Minimize">
+					<i class="fas fa-minus text-xs"></i>
+				</button>
+				<button class="text-white hover:bg-green-800 p-1 rounded" onclick="closePanel('remote-video-panel-2')" title="Close">
+					<i class="fas fa-times text-xs"></i>
+				</button>
+			</div>
+		</div>
+		<div class="video-body bg-gray-900 relative" style="height: calc(100% - 40px);" id="videoremote2">
+			<!-- Video will be inserted here by Janus -->
+		</div>
+		<div class="resize-handle"></div>
+	</div>
+
+	<!-- Remote Video 3 (Additional Participant) -->
+	<div class="draggable-video video-panel fixed rounded-xl overflow-hidden hide" 
+		 id="remote-video-panel-3"
+		 style="width: 320px; height: 240px; top: calc(100vh - 260px); left: 20px; z-index: 100;">
+		<div class="drag-handle bg-gradient-to-r from-orange-600 to-orange-700 px-4 py-2 flex items-center justify-between cursor-move">
+			<div class="flex items-center space-x-2 text-white">
+				<i class="fas fa-user"></i>
+				<span class="font-semibold text-sm">Participant 3</span>
+				<span class="badge bg-info hide px-2 py-0.5 rounded text-xs ml-2" id="remote3"></span>
+			</div>
+			<div class="flex items-center space-x-1">
+				<button class="text-white hover:bg-orange-800 p-1 rounded" onclick="minimizePanel('remote-video-panel-3')" title="Minimize">
+					<i class="fas fa-minus text-xs"></i>
+				</button>
+				<button class="text-white hover:bg-orange-800 p-1 rounded" onclick="closePanel('remote-video-panel-3')" title="Close">
+					<i class="fas fa-times text-xs"></i>
+				</button>
+			</div>
+		</div>
+		<div class="video-body bg-gray-900 relative" style="height: calc(100% - 40px);" id="videoremote3">
+			<!-- Video will be inserted here by Janus -->
+		</div>
+		<div class="resize-handle"></div>
+	</div>
+
+	<!-- Remote Video 4 (Additional Participant) -->
+	<div class="draggable-video video-panel fixed rounded-xl overflow-hidden hide" 
+		 id="remote-video-panel-4"
+		 style="width: 320px; height: 240px; top: 400px; left: 20px; z-index: 100;">
+		<div class="drag-handle bg-gradient-to-r from-pink-600 to-pink-700 px-4 py-2 flex items-center justify-between cursor-move">
+			<div class="flex items-center space-x-2 text-white">
+				<i class="fas fa-user"></i>
+				<span class="font-semibold text-sm">Participant 4</span>
+				<span class="badge bg-info hide px-2 py-0.5 rounded text-xs ml-2" id="remote4"></span>
+			</div>
+			<div class="flex items-center space-x-1">
+				<button class="text-white hover:bg-pink-800 p-1 rounded" onclick="minimizePanel('remote-video-panel-4')" title="Minimize">
+					<i class="fas fa-minus text-xs"></i>
+				</button>
+				<button class="text-white hover:bg-pink-800 p-1 rounded" onclick="closePanel('remote-video-panel-4')" title="Close">
+					<i class="fas fa-times text-xs"></i>
+				</button>
+			</div>
+		</div>
+		<div class="video-body bg-gray-900 relative" style="height: calc(100% - 40px);" id="videoremote4">
+			<!-- Video will be inserted here by Janus -->
+		</div>
+		<div class="resize-handle"></div>
+	</div>
+
+	<!-- Remote Video 5 (Additional Participant) -->
+	<div class="draggable-video video-panel fixed rounded-xl overflow-hidden hide" 
+		 id="remote-video-panel-5"
+		 style="width: 320px; height: 240px; top: calc(100vh - 560px); left: calc(100vw - 340px); z-index: 100;">
+		<div class="drag-handle bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-2 flex items-center justify-between cursor-move">
+			<div class="flex items-center space-x-2 text-white">
+				<i class="fas fa-user"></i>
+				<span class="font-semibold text-sm">Participant 5</span>
+				<span class="badge bg-info hide px-2 py-0.5 rounded text-xs ml-2" id="remote5"></span>
+			</div>
+			<div class="flex items-center space-x-1">
+				<button class="text-white hover:bg-indigo-800 p-1 rounded" onclick="minimizePanel('remote-video-panel-5')" title="Minimize">
+					<i class="fas fa-minus text-xs"></i>
+				</button>
+				<button class="text-white hover:bg-indigo-800 p-1 rounded" onclick="closePanel('remote-video-panel-5')" title="Close">
+					<i class="fas fa-times text-xs"></i>
+				</button>
+			</div>
+		</div>
+		<div class="video-body bg-gray-900 relative" style="height: calc(100% - 40px);" id="videoremote5">
+			<!-- Video will be inserted here by Janus -->
+		</div>
+		<div class="resize-handle"></div>
+	</div>
+</div>
+
+<script>
+// Make video panels draggable and resizable
+$(document).ready(function() {
+	// Initialize draggable functionality
+	interact('.draggable-video').draggable({
+		allowFrom: '.drag-handle',
+		ignoreFrom: '.resize-handle',
+		inertia: true,
+		modifiers: [
+			interact.modifiers.restrictRect({
+				restriction: 'parent',
+				endOnly: true
+			})
+		],
+		autoScroll: true,
+		listeners: {
+			move: dragMoveListener
+		}
+	}).resizable({
+		edges: { left: false, right: true, bottom: true, top: false },
+		allowFrom: '.resize-handle',
+		listeners: {
+			move(event) {
+				var target = event.target;
+				var x = (parseFloat(target.getAttribute('data-x')) || 0);
+				var y = (parseFloat(target.getAttribute('data-y')) || 0);
+
+				// Update size
+				target.style.width = event.rect.width + 'px';
+				target.style.height = event.rect.height + 'px';
+
+				// Keep transform as is (no adjustment needed for top-left positioned elements)
+				target.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+
+				target.setAttribute('data-x', x);
+				target.setAttribute('data-y', y);
+			}
+		},
+		modifiers: [
+			interact.modifiers.restrictSize({
+				min: { width: 200, height: 150 }
+			})
+		],
+		inertia: true
+	});
+
+	function dragMoveListener(event) {
+		var target = event.target;
+		var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+		var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+		target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+
+		target.setAttribute('data-x', x);
+		target.setAttribute('data-y', y);
+	}
+
+	window.dragMoveListener = dragMoveListener;
+	
+	// Observe when remote panels should be shown
+	const observer = new MutationObserver(function(mutations) {
+		mutations.forEach(function(mutation) {
+			if (mutation.type === 'childList' && mutation.target.id.startsWith('videoremote')) {
+				const remoteId = mutation.target.id.replace('videoremote', '');
+				if (mutation.target.children.length > 0) {
+					// Show the corresponding panel when video is added
+					$('#remote-video-panel-' + remoteId).removeClass('hide');
+				}
+			} else if (mutation.type === 'childList' && mutation.target.id === 'videolocal') {
+				// When local video is added, hide the join dialog
+				if (mutation.target.children.length > 0) {
+					$('#videojoin').addClass('hide');
+				}
+			}
+		});
+	});
+	
+	// Observe all remote video containers
+	for (let i = 1; i <= 5; i++) {
+		const element = document.getElementById('videoremote' + i);
+		if (element) {
+			observer.observe(element, { childList: true, subtree: true });
+		}
+	}
+	
+	// Observe local video container to hide join dialog
+	const localVideoElement = document.getElementById('videolocal');
+	if (localVideoElement) {
+		observer.observe(localVideoElement, { childList: true, subtree: true });
+	}
+});
+
+function minimizePanel(panelId) {
+	$('#' + panelId).toggleClass('minimized');
+}
+
+function closePanel(panelId) {
+	$('#' + panelId).addClass('hide');
+}
+
+function toggleLayoutMode() {
+	// Reset all panels to their original positions
+	$('.draggable-video').each(function() {
+		$(this).css('transform', 'translate(0px, 0px)');
+		$(this).attr('data-x', 0).attr('data-y', 0);
+	});
+}
+
+// Run iframe code function
+function runIframeCode() {
+	try {
+		const iframe = document.getElementById('questionnaire-iframe');
+		if (!iframe) {
+			console.error('Iframe not found');
+			return;
+		}
+		
+		// Try to access iframe content (will fail for cross-origin)
+		try {
+			const iframeWindow = iframe.contentWindow;
+			const result = iframeWindow.eval(`
+				[...new Set($(".answer-item").not(".hidden").children("label").toArray().map((e, index) => e.innerHTML?.trim()))]
+			`);
+			console.log('Iframe code result:', result);
+			return result;
+		} catch (e) {
+			console.error('Cannot access iframe due to same-origin policy:', e);
+			alert('Cannot access iframe content - it is from a different domain. You need to run this code from the browser console after selecting the iframe context.');
+		}
+	} catch (error) {
+		console.error('Error running iframe code:', error);
+	}
+}
+</script>
+
+</body>
+</html>

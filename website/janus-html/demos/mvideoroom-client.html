@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Interview Session - Video Call</title>
+<script type="text/javascript" src="/dependencies/js/adapter.min.js" ></script>
+<script type="text/javascript" src="/dependencies/js/jquery.min.js" ></script>
+
+<script type="text/javascript" src="/dependencies/js/jquery.blockUI.min.js" ></script>
+<script type="text/javascript" src="/dependencies/js/bootstrap.bundle.min.js"></script>
+<script type="text/javascript" src="/dependencies/js/bootbox.min.js"></script>
+<script type="text/javascript" src="/dependencies/js/toastr.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+<script type="text/javascript" src="settings.js" ></script>
+<script type="text/javascript" src="janus.js" ></script>
+<script type="text/javascript" src="mvideoroom.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/dependencies/js/all.min.css" type="text/css"/>
+<link rel="stylesheet" href="/dependencies/js/toastr.min.css"/>
+<style>
+	body { 
+		margin: 0; 
+		padding: 0; 
+		overflow: hidden; 
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	}
+	.draggable-video {
+		touch-action: none;
+		user-select: none;
+	}
+	.video-container video {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.drag-handle {
+		cursor: move;
+	}
+	.no-video-container {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+		font-size: 3rem;
+		height: 100%;
+	}
+	.relative {
+		position: relative;
+	}
+	.hide {
+		display: none !important;
+	}
+	#bitrate {
+		min-width: 150px;
+	}
+	.video-panel {
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+		backdrop-filter: blur(10px);
+		background: rgba(255, 255, 255, 0.95);
+	}
+	.minimized {
+		height: 60px !important;
+		overflow: hidden;
+	}
+	.minimized .video-body {
+		display: none;
+	}
+	.resize-handle {
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		width: 20px;
+		height: 20px;
+		cursor: nwse-resize;
+		z-index: 1000;
+		background: linear-gradient(135deg, transparent 50%, rgba(59, 130, 246, 0.3) 50%);
+	}
+	.resize-handle:hover {
+		background: linear-gradient(135deg, transparent 50%, rgba(59, 130, 246, 0.6) 50%);
+	}
+	.survey-panel {
+		transition: all 0.3s ease;
+	}
+	.survey-option {
+		transition: all 0.2s ease;
+	}
+	.survey-option:hover {
+		transform: translateX(4px);
+	}
+</style>
+</head>
+<body class="bg-gray-50">
+
+<!-- Top Status Bar -->
+<div class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 px-6 py-3 flex items-center justify-between">
+	<div class="flex items-center space-x-4">
+		<div class="flex items-center space-x-2">
+			<div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+			<h1 class="text-xl font-bold text-gray-800"><i class="fas fa-video mr-2 text-blue-600"></i>Interview Session</h1>
+		</div>
+		<span class="badge bg-info px-3 py-1 rounded-full text-sm" id="you"></span>
+	</div>
+	
+	<div class="flex items-center space-x-3">
+		<div class="relative">
+			<select id="video-resolution" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:border-blue-500">
+				<option value="lowres">Low (320x240)</option>
+				<option value="stdres">Standard (640x480)</option>
+				<option value="hires" selected>HD (1280x720)</option>
+				<option value="fhdres">Full HD (1920x1080)</option>
+			</select>
+		</div>
+		<button class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm" id="start">
+			<i class="fas fa-video mr-2"></i>Connect
+		</button>
+	</div>
+</div>
+
+<!-- Join Dialog -->
+<div class="hide fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center" id="videojoin">
+	<div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+		<div class="text-center mb-6">
+			<div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+				<i class="fas fa-user text-blue-600 text-2xl"></i>
+			</div>
+			<h2 class="text-2xl font-bold text-gray-800">Join Interview</h2>
+			<p class="text-gray-600 mt-2">Please enter your name to continue</p>
+		</div>
+		
+		<div id="controls">
+			<div class="hide" id="registernow">
+				<div class="relative">
+					<input 
+						autocomplete="off" 
+						class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg" 
+						type="text" 
+						placeholder="Your full name" 
+						id="username" 
+						onkeypress="return checkEnter(this, event);"
+					/>
+				</div>
+				<button 
+					class="w-full mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg" 
+					id="register"
+				>
+					<i class="fas fa-sign-in-alt mr-2"></i>Join Session
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Main Content Area -->
+<div class="hide flex" id="videos" style="margin-top: 64px; height: calc(100vh - 64px);">
+	
+	<!-- Left Side: Video Area (70%) -->
+	<div class="flex-1 relative bg-gray-100 p-4">
+		<!-- Main Video Container (Interviewer) -->
+		<div class="w-full h-full bg-black rounded-2xl overflow-hidden shadow-2xl relative" id="main-video-container">
+			<div id="videoremote1" class="w-full h-full relative">
+				<!-- Interviewer video will be inserted here -->
+				<div class="no-video-container">
+					<div class="text-center">
+						<i class="fas fa-user-circle mb-4"></i>
+						<p class="text-xl">Waiting for interviewer...</p>
+					</div>
+				</div>
+			</div>
+			<!-- Connection Status Indicator -->
+			<div class="absolute top-4 right-4 bg-black bg-opacity-50 backdrop-blur-sm px-4 py-2 rounded-lg">
+				<span class="badge bg-info hide text-sm" id="remote1"></span>
+			</div>
+		</div>
+
+		<!-- Local Video (Self View) - Picture in Picture -->
+		<div class="draggable-video video-panel fixed rounded-xl overflow-hidden shadow-2xl" 
+			 id="local-video-panel"
+			 style="width: 240px; height: 180px; top: 100px; left: 30px; z-index: 100;">
+			<div class="drag-handle bg-gradient-to-r from-blue-600 to-blue-700 px-3 py-1.5 flex items-center justify-between cursor-move">
+				<div class="flex items-center space-x-2 text-white text-xs">
+					<i class="fas fa-user"></i>
+					<span class="font-semibold">You</span>
+					<span class="badge bg-primary hide px-2 py-0.5 rounded" id="publisher"></span>
+				</div>
+				<div class="flex items-center space-x-1">
+					<button class="text-white hover:bg-blue-800 p-1 rounded" onclick="minimizePanel('local-video-panel')" title="Minimize">
+						<i class="fas fa-minus text-xs"></i>
+					</button>
+					<!-- Bitrate Dropdown -->
+					<div class="btn-group btn-group-sm hide">
+						<button id="bitrateset" class="text-white hover:bg-blue-800 px-2 py-1 rounded text-xs" data-bs-toggle="dropdown">
+							<i class="fas fa-cog"></i>
+						</button>
+						<ul id="bitrate" class="dropdown-menu dropdown-menu-end" role="menu">
+							<a class="dropdown-item" href="#" id="0">No limit</a>
+							<a class="dropdown-item" href="#" id="128">Cap to 128kbit</a>
+							<a class="dropdown-item" href="#" id="256">Cap to 256kbit</a>
+							<a class="dropdown-item" href="#" id="512">Cap to 512kbit</a>
+							<a class="dropdown-item" href="#" id="1024">Cap to 1mbit</a>
+							<a class="dropdown-item" href="#" id="1500">Cap to 1.5mbit</a>
+							<a class="dropdown-item" href="#" id="2000">Cap to 2mbit</a>
+						</ul>
+					</div>
+				</div>
+			</div>
+			<div class="video-body bg-gray-100 relative" style="height: calc(100% - 32px);" id="videolocal">
+				<!-- Your video will be inserted here -->
+			</div>
+			<div class="resize-handle"></div>
+		</div>
+	</div>
+
+	<!-- Right Side: Survey/Answer Options Panel (30%) -->
+	<div class="w-full lg:w-96 bg-white border-l border-gray-200 flex flex-col survey-panel" id="survey-panel">
+		<!-- Panel Header -->
+		<div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
+			<h3 class="text-lg font-bold flex items-center">
+				<i class="fas fa-clipboard-list mr-2"></i>
+				Survey Responses
+			</h3>
+			<p class="text-sm text-blue-100 mt-1">Your answer options will appear here</p>
+		</div>
+
+		<!-- Scrollable Content Area -->
+		<div class="flex-1 overflow-y-auto p-6 flex items-center justify-center" id="survey-content">
+			<div class="text-center text-gray-500">
+				<i class="fas fa-tasks text-4xl mb-4 opacity-50"></i>
+				<p class="text-lg">Survey response options will be shown here</p>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+// Make local video panel draggable and resizable
+$(document).ready(function() {
+	// Initialize draggable functionality
+	interact('.draggable-video').draggable({
+		allowFrom: '.drag-handle',
+		ignoreFrom: '.resize-handle',
+		inertia: true,
+		modifiers: [
+			interact.modifiers.restrictRect({
+				restriction: 'parent',
+				endOnly: true
+			})
+		],
+		autoScroll: true,
+		listeners: {
+			move: dragMoveListener
+		}
+	}).resizable({
+		edges: { left: false, right: true, bottom: true, top: false },
+		allowFrom: '.resize-handle',
+		listeners: {
+			move(event) {
+				var target = event.target;
+				var x = (parseFloat(target.getAttribute('data-x')) || 0);
+				var y = (parseFloat(target.getAttribute('data-y')) || 0);
+
+				target.style.width = event.rect.width + 'px';
+				target.style.height = event.rect.height + 'px';
+
+				target.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+
+				target.setAttribute('data-x', x);
+				target.setAttribute('data-y', y);
+			}
+		},
+		modifiers: [
+			interact.modifiers.restrictSize({
+				min: { width: 160, height: 120 }
+			})
+		],
+		inertia: true
+	});
+
+	function dragMoveListener(event) {
+		var target = event.target;
+		var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+		var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+		target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+
+		target.setAttribute('data-x', x);
+		target.setAttribute('data-y', y);
+	}
+
+	window.dragMoveListener = dragMoveListener;
+	
+	// Observe when local video is added to hide join dialog
+	const observer = new MutationObserver(function(mutations) {
+		mutations.forEach(function(mutation) {
+			if (mutation.type === 'childList' && mutation.target.id === 'videolocal') {
+				if (mutation.target.children.length > 0) {
+					$('#videojoin').addClass('hide');
+				}
+			}
+		});
+	});
+	
+	const localVideoElement = document.getElementById('videolocal');
+	if (localVideoElement) {
+		observer.observe(localVideoElement, { childList: true, subtree: true });
+	}
+});
+
+function minimizePanel(panelId) {
+	$('#' + panelId).toggleClass('minimized');
+}
+
+let surveyPanelVisible = true;
+function toggleSurveyPanel() {
+	surveyPanelVisible = !surveyPanelVisible;
+	const panel = $('#survey-panel');
+	const toggleText = $('#panel-toggle-text');
+	const toggleIcon = $('#panel-toggle-text').prev('i');
+	
+	if (surveyPanelVisible) {
+		panel.removeClass('hidden');
+		toggleText.text('Hide Panel');
+		toggleIcon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
+	} else {
+		panel.addClass('hidden');
+		toggleText.text('Show Panel');
+		toggleIcon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
+	}
+}
+
+// Function to add survey options dynamically
+function addSurveyOptions(options) {
+	const container = $('#answer-options');
+	container.empty().removeClass('hide');
+	
+	if (options && options.length > 0) {
+		container.append('<h4 class="font-semibold text-gray-700 mb-3">Please select your answer:</h4>');
+		
+		options.forEach((option, index) => {
+			const button = $(`
+				<button class="survey-option w-full text-left px-4 py-3 bg-gray-50 hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-500 rounded-lg transition-all" data-value="${option.value || index}">
+					<div class="flex items-start">
+						<div class="flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-300 mr-3 mt-0.5"></div>
+						<div class="flex-1">
+							<span class="font-medium text-gray-800">${option.label || option}</span>
+							${option.description ? '<p class="text-sm text-gray-600 mt-1">' + option.description + '</p>' : ''}
+						</div>
+					</div>
+				</button>
+			`);
+			
+			button.on('click', function() {
+				// Handle selection
+				$('.survey-option').removeClass('bg-blue-100 border-blue-600');
+				$(this).addClass('bg-blue-100 border-blue-600');
+				$(this).find('.border-gray-300').removeClass('border-gray-300').addClass('border-blue-600 bg-blue-600');
+				
+				// You can emit this selection to the interviewer or backend
+				console.log('Selected:', option);
+			});
+			
+			container.append(button);
+		});
+	}
+}
+
+// Example usage (can be called from external script):
+// addSurveyOptions([
+//     { label: "Strongly Agree", value: 5, description: "I completely agree with this statement" },
+//     { label: "Agree", value: 4 },
+//     { label: "Neutral", value: 3 },
+//     { label: "Disagree", value: 2 },
+//     { label: "Strongly Disagree", value: 1 }
+// ]);
+</script>
+
+</body>
+</html>

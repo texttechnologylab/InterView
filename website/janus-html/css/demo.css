@@ -1,0 +1,631 @@
+:root {
+	--faces-page-bg: #f8f6f5;
+	--faces-surface: #ffffff;
+	--faces-surface-alt: #e4e3dd;
+	--faces-text: #4d4b46;
+	--faces-muted: #6f6a63;
+	--faces-border: #d7d2c8;
+	--faces-accent: #00618f;
+	--faces-accent-strong: #4d4b46;
+	--faces-accent-soft: #dff0f8;
+	--faces-accent-secondary: #860047;
+	--faces-accent-secondary-soft: #f6dfe9;
+	--faces-accent-tertiary: #c96215;
+	--faces-accent-tertiary-soft: #f9e2cb;
+	--faces-accent-quaternary: #ad3b76;
+	--faces-accent-quaternary-soft: #f4dce8;
+	--faces-success: #737c45;
+	--faces-warning: #f7d926;
+	--faces-danger: #b3062c;
+	--faces-shadow: 0 18px 45px rgba(77, 75, 70, 0.10);
+}
+
+html {
+	background: var(--faces-page-bg);
+}
+
+body {
+	color: var(--faces-text);
+	background:
+		radial-gradient(circle at top left, rgba(0, 97, 143, 0.12), transparent 30%),
+		radial-gradient(circle at top right, rgba(201, 98, 21, 0.10), transparent 22%),
+		radial-gradient(circle at 18% 86%, rgba(134, 0, 71, 0.08), transparent 18%),
+		linear-gradient(180deg, #fcfbfa 0%, var(--faces-page-bg) 100%) !important;
+	font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body.faces-home,
+body.faces-session {
+
+}
+
+body.faces-home {
+	color: var(--faces-text);
+}
+
+body.faces-home .faces-home-eyebrow {
+	background: rgba(255, 255, 255, 0.82);
+	color: var(--faces-accent-secondary) !important;
+	border: 1px solid var(--faces-border);
+	backdrop-filter: blur(10px);
+}
+
+.bg-white,
+.bg-gray-50,
+.bg-gray-100 {
+	background-color: var(--faces-surface) !important;
+}
+
+body.faces-session {
+	overflow: hidden;
+}
+
+body.faces-session .bg-gray-50 {
+	background-color: transparent !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	color: var(--faces-accent-strong);
+	letter-spacing: -0.02em;
+}
+
+a {
+	color: var(--faces-accent);
+}
+
+a:hover {
+	color: var(--faces-accent-strong);
+}
+
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-2xl {
+	box-shadow: var(--faces-shadow) !important;
+}
+
+.border,
+.border-gray-200,
+.border-gray-300,
+.border-l,
+.border-t,
+.border-b,
+.border-r {
+	border-color: var(--faces-border) !important;
+}
+
+.bg-blue-600,
+.bg-blue-700,
+.bg-purple-600,
+.bg-purple-700,
+.bg-primary,
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+	background-color: var(--faces-accent) !important;
+	border-color: var(--faces-accent) !important;
+}
+
+.bg-orange-600,
+.bg-orange-700 {
+	background-color: var(--faces-accent-tertiary) !important;
+	border-color: var(--faces-accent-tertiary) !important;
+}
+
+.bg-green-500,
+.bg-green-600,
+.bg-green-700 {
+	background-color: var(--faces-success) !important;
+	border-color: var(--faces-success) !important;
+}
+
+.bg-yellow-400,
+.bg-yellow-500,
+.bg-yellow-600 {
+	background-color: var(--faces-warning) !important;
+	border-color: var(--faces-warning) !important;
+}
+
+.bg-red-500,
+.bg-red-600,
+.bg-red-700 {
+	background-color: var(--faces-danger) !important;
+	border-color: var(--faces-danger) !important;
+}
+
+.hover\:bg-blue-700:hover,
+.hover\:bg-purple-700:hover,
+.hover\:bg-gray-200:hover,
+.hover\:bg-gray-300:hover,
+.btn:hover {
+	background-color: var(--faces-accent-secondary) !important;
+	border-color: var(--faces-accent-secondary) !important;
+}
+
+.hover\:bg-orange-700:hover,
+.hover\:bg-red-700:hover,
+.hover\:bg-green-700:hover {
+	background-color: var(--faces-accent-strong) !important;
+	border-color: var(--faces-accent-strong) !important;
+}
+
+.bg-blue-100,
+.bg-purple-100,
+.table-info,
+.badge.bg-info {
+	background-color: var(--faces-accent-soft) !important;
+	color: var(--faces-accent-strong) !important;
+}
+
+.bg-orange-100 {
+	background-color: var(--faces-accent-tertiary-soft) !important;
+	color: var(--faces-accent-tertiary) !important;
+}
+
+.bg-purple-100,
+.bg-faces-purple-soft {
+	background-color: var(--faces-accent-quaternary-soft) !important;
+	color: var(--faces-accent-quaternary) !important;
+}
+
+.bg-green-100 {
+	background-color: rgba(115, 124, 69, 0.16) !important;
+	color: var(--faces-success) !important;
+}
+
+.text-blue-600,
+.text-purple-600,
+.text-blue-700,
+.text-purple-700 {
+	color: var(--faces-accent) !important;
+}
+
+.text-orange-600,
+.text-orange-700 {
+	color: var(--faces-accent-tertiary) !important;
+}
+
+.text-green-600,
+.text-green-700 {
+	color: var(--faces-success) !important;
+}
+
+.text-red-600,
+.text-red-700 {
+	color: var(--faces-danger) !important;
+}
+
+.text-blue-100,
+.text-purple-100,
+.text-gray-500,
+.text-gray-600 {
+	color: var(--faces-muted) !important;
+}
+
+.text-gray-700,
+.text-gray-800,
+.text-gray-900 {
+	color: var(--faces-text) !important;
+}
+
+.bg-black,
+.bg-gray-900 {
+	background-color: #2d2a26 !important;
+}
+
+.hide {
+	display: none !important;
+}
+
+.no-video-container {
+	background: linear-gradient(135deg, #00618f 0%, #860047 60%, #c96215 100%) !important;
+}
+
+.chat-active {
+	background: var(--faces-accent-secondary) !important;
+}
+
+.chat-unread {
+	box-shadow: inset 0 0 0 3px rgba(134, 0, 71, 0.3) !important;
+}
+
+.vbg-btn.active {
+	border-color: var(--faces-accent-secondary) !important;
+	background-color: var(--faces-accent-quaternary-soft) !important;
+	color: var(--faces-accent-secondary) !important;
+}
+
+.recording-pulse {
+	animation: pulse-neutral 1.4s infinite;
+}
+
+/* Brief emphasis when a new answer-option batch is sent or freshly acked. */
+.answer-ack-pulse {
+	animation: answer-ack-flash 0.6s ease-in-out 2;
+}
+
+/* Persistent error state: at least one batch failed to be acknowledged at some
+   point. The whole pill goes orange so the interviewer knows a problem occurred,
+   while the leading icon still reflects the LATEST batch's status. */
+#answer-ack-chip.answer-ack-chip--error {
+	background-color: var(--faces-accent-tertiary) !important;
+	border-color: var(--faces-accent-tertiary) !important;
+	color: #ffffff !important;
+}
+#answer-ack-chip.answer-ack-chip--error:hover {
+	background-color: var(--faces-accent-strong) !important;
+}
+#answer-ack-chip.answer-ack-chip--error #answer-ack-count {
+	color: rgba(255, 255, 255, 0.85) !important;
+}
+
+@keyframes answer-ack-flash {
+	0%, 100% {
+		box-shadow: 0 0 0 0 rgba(115, 124, 69, 0);
+	}
+	50% {
+		box-shadow: 0 0 0 4px rgba(115, 124, 69, 0.35);
+	}
+}
+
+@keyframes pulse-neutral {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.45;
+	}
+}
+
+.navbar {
+	background-color: rgba(248, 246, 245, 0.94) !important;
+	backdrop-filter: blur(18px);
+	border-bottom: 1px solid var(--faces-border);
+	box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.navbar-dark .navbar-brand,
+.navbar-dark .navbar-nav .nav-link,
+.navbar-dark .navbar-nav .nav-link.active,
+.navbar-dark .navbar-nav .show > .nav-link {
+	color: var(--faces-accent-strong) !important;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link:focus {
+	color: var(--faces-accent) !important;
+}
+
+.dropdown-menu {
+	border: 1px solid var(--faces-border);
+	box-shadow: var(--faces-shadow);
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+	background-color: var(--faces-accent-secondary) !important;
+}
+
+.table {
+	color: var(--faces-text);
+}
+
+.table > :not(caption) > * > * {
+	padding: 0.9rem 1rem;
+	border-color: var(--faces-border) !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+	background-color: #f3f0eb;
+}
+
+.table-info > * {
+	background-color: rgba(0, 97, 143, 0.12) !important;
+	color: var(--faces-accent) !important;
+}
+
+.nav-tabs {
+	border-bottom-color: var(--faces-border);
+}
+
+.nav-tabs .nav-link {
+	color: var(--faces-muted);
+}
+
+.nav-tabs .nav-link.active {
+	color: var(--faces-accent-secondary) !important;
+	border-color: var(--faces-border) var(--faces-border) var(--faces-surface) !important;
+}
+
+.form-control,
+.form-select,
+input,
+select,
+textarea {
+	border-color: var(--faces-border) !important;
+	box-shadow: none !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	border-color: rgba(0, 97, 143, 0.65) !important;
+	box-shadow: 0 0 0 0.2rem rgba(0, 97, 143, 0.14) !important;
+}
+
+.btn,
+button {
+	border-radius: 0.85rem;
+	font-weight: 600;
+}
+
+.btn-secondary,
+.btn-outline-secondary,
+.btn-light,
+.btn-outline-light {
+	background-color: #f0ece7 !important;
+	border-color: #d8d2c8 !important;
+	color: var(--faces-accent-strong) !important;
+}
+
+.btn-secondary:hover,
+.btn-outline-secondary:hover,
+.btn-light:hover,
+.btn-outline-light:hover {
+	background-color: #e0dbd2 !important;
+	border-color: #c8c0b3 !important;
+	color: var(--faces-accent-strong) !important;
+}
+
+img[alt="Fork me on GitHub"] {
+	display: none !important;
+}
+
+body.faces-home .bg-blue-600,
+body.faces-home .bg-blue-700,
+body.faces-home .bg-purple-600,
+body.faces-home .bg-purple-700 {
+	background-color: var(--faces-accent) !important;
+}
+
+body.faces-home button.text-white,
+body.faces-session button.text-white,
+body.faces-session .text-white {
+	color: #ffffff !important;
+}
+
+body.faces-home .w-full.max-w-4xl {
+	width: min(1120px, 100%);
+}
+
+body.faces-home .bg-white.rounded-2xl,
+body.faces-session .bg-white,
+.card,
+.modal-content,
+.dropdown-menu,
+.table {
+	border: 1px solid var(--faces-border);
+}
+
+body.faces-home .bg-white.rounded-2xl {
+	border-top: 4px solid var(--faces-accent);
+}
+
+body.faces-home .bg-white.rounded-2xl:last-child {
+	border-top-color: var(--faces-accent-secondary);
+}
+
+body.faces-home .bg-white.rounded-2xl {
+	box-shadow: 0 20px 55px rgba(15, 23, 42, 0.10);
+}
+
+body.faces-session .fixed.top-0.left-0.right-0 {
+	background: rgba(248, 246, 245, 0.94) !important;
+	backdrop-filter: blur(16px);
+	border-bottom: 1px solid var(--faces-border);
+}
+
+body.faces-session #answer-options-panel,
+body.faces-session #chat-panel,
+body.faces-session aside,
+body.faces-session .bg-gray-100 {
+	background-color: var(--faces-surface) !important;
+}
+
+body.faces-session #chat-toggle,
+body.faces-session #chat-send,
+body.faces-session #record-btn {
+	background-color: var(--faces-accent-secondary) !important;
+	color: #ffffff !important;
+}
+
+body.faces-session #chat-toggle:hover,
+body.faces-session #chat-send:hover,
+body.faces-session #record-btn:hover {
+	background-color: var(--faces-accent-tertiary) !important;
+}
+
+/* Hide the interviewer name badge while it has no name yet */
+body.faces-session #remote1-badge:not(:has(#remote1:not(:empty))) {
+	display: none;
+}
+
+/* ============================================================
+   Mobile / small-screen layout (interviewee perspective)
+   Portrait phones up to 768px wide; landscape phones up to 950px wide.
+   ============================================================ */
+@media (max-width: 768px), (max-width: 950px) and (orientation: landscape) {
+	/* Hide the header on small screens to maximize space for the video + answers */
+	body.faces-session .fixed.top-0.left-0.right-0 {
+		display: none !important;
+	}
+
+	/* Reclaim the header's space: full viewport height, no top margin */
+	body.faces-session #videos {
+		margin-top: 0 !important;
+		height: 100vh !important;
+		height: 100dvh !important;
+	}
+
+	/* Sidebar becomes a flexible region instead of a fixed 380px column */
+	body.faces-session #videos aside {
+		width: auto !important;
+		border-left: none !important;
+	}
+
+	/* Self-view on mobile: small picture-in-picture overlay in the top-right of
+	   the interviewer video, so the participant has visual confirmation that
+	   their own stream is active. position:fixed escapes any ancestor clipping
+	   (e.g. the aside's overflow rules). */
+	body.faces-session #self-view {
+		position: fixed !important;
+		top: 0.5rem !important;
+		right: 0.5rem !important;
+		width: 25vw !important;
+		max-width: 140px !important;
+		min-width: 90px !important;
+		height: auto !important;
+		aspect-ratio: 4 / 3;
+		z-index: 30 !important;
+		border-radius: 0.5rem !important;
+		overflow: hidden !important;
+		border: 2px solid rgba(255, 255, 255, 0.7) !important;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+	}
+	body.faces-session #self-view #videolocal,
+	body.faces-session #self-view #videolocal video {
+		width: 100% !important;
+		height: 100% !important;
+		object-fit: cover !important;
+	}
+	body.faces-session #self-view > div[class*="bg-black/60"] {
+		font-size: 0.625rem !important;
+		padding: 0.125rem 0.375rem !important;
+	}
+
+	/* Keep the answer-options area scrollable and let the controls sit below it */
+	body.faces-session #answer-options-panel {
+		padding: 1rem !important;
+	}
+}
+
+/* ---------- Portrait: interviewer on top, answers + chat below ---------- */
+@media (max-width: 768px) and (orientation: portrait) {
+	body.faces-session #videos {
+		flex-direction: column;
+	}
+
+	body.faces-session #interviewer-stage {
+		flex: 0 0 50%;
+		height: 50%;
+		min-height: 0;
+	}
+
+	body.faces-session #videos aside {
+		flex: 1 1 50%;
+		min-height: 0;
+		border-top: 1px solid var(--faces-border) !important;
+	}
+}
+
+/* ---------- Landscape: interviewer left, answers right, chat at bottom ---------- */
+@media (max-width: 950px) and (orientation: landscape) {
+	body.faces-session #videos {
+		flex-direction: row;
+	}
+
+	body.faces-session #interviewer-stage {
+		flex: 0 0 60%;
+		width: 60%;
+		min-width: 0;
+	}
+
+	body.faces-session #videos aside {
+		flex: 1 1 40%;
+		min-width: 0;
+		border-left: 1px solid var(--faces-border) !important;
+	}
+
+	/* Compact the controls so the chat button still fits at the bottom */
+	body.faces-session #videos aside #chat-toggle {
+		padding-top: 0.75rem !important;
+		padding-bottom: 0.75rem !important;
+	}
+
+	/* In landscape the interviewer video is the LEFT 60% and the answer options
+	   are the RIGHT 40%. The shared mobile rule pins the self-view to the
+	   viewport's right edge, which lands it over the answer options. Re-anchor it
+	   to the top-right of the VIDEO area instead: offset from the right by the
+	   width of the answers panel (40vw) plus a small margin. */
+	body.faces-session #self-view {
+		right: calc(40vw + 0.5rem) !important;
+	}
+}
+
+/* ---------- Header compaction on narrow screens ---------- */
+@media (max-width: 640px) {
+	body.faces-session .fixed.top-0.left-0.right-0 {
+		padding-left: 0.75rem !important;
+		padding-right: 0.75rem !important;
+	}
+
+	body.faces-session .fixed.top-0.left-0.right-0 h1 {
+		font-size: 0.95rem !important;
+		white-space: nowrap;
+	}
+
+	/* Tighten spacing between the header's left-hand items so nothing wraps */
+	body.faces-session .fixed.top-0.left-0.right-0 .space-x-4 > * + * {
+		margin-left: 0.5rem !important;
+	}
+}
+
+/* ============================================================
+   Desktop only, INTERVIEWEE only: when the chat is open, split the sidebar
+   region so the answer options and the chat SHARE the vertical space instead of
+   the chat overlaying the options. The interviewee's answer options must stay
+   visible while chatting.
+
+   The INTERVIEWER is deliberately excluded: their left panel is just static
+   "Sitzungsinfo" help text, so letting the chat fully overlay it (the default
+   absolute inset-0 behavior) gives the chat the whole region — more useful than
+   a cramped split. Mobile (both roles) also keeps the full-overlay behavior.
+
+   The two panels (#answer-options-panel and #chat-panel) are normally both
+   position:absolute inset-0 (stacked, chat on top). On desktop, while the chat
+   region (the parent of both panels) actually contains a visible #chat-panel
+   (i.e. it is NOT .hide), we reposition them as top/bottom halves.
+   ============================================================ */
+@media (min-width: 769px) {
+	/* Parent region currently has no id; it is the only element that holds both
+	   panels. When its chat child is open, switch the answer panel to the top
+	   half and the chat to the bottom half. Interviewee only. */
+	body.faces-session.faces-role-interviewee aside > div:has(> #chat-panel:not(.hide)) > #answer-options-panel {
+		top: 0 !important;
+		bottom: 50% !important;
+		height: auto !important;
+		border-bottom: 1px solid var(--faces-border);
+	}
+
+	body.faces-session.faces-role-interviewee aside > div:has(> #chat-panel:not(.hide)) > #chat-panel {
+		top: 50% !important;
+		bottom: 0 !important;
+		height: auto !important;
+	}
+
+	/* While chat is open the answer panel only has the top half — reclaim the
+	   space taken by the contact/footer note (reload hint, phone, e-mail) by
+	   hiding it. It is the last block inside #answer-options-panel. */
+	body.faces-session.faces-role-interviewee aside > div:has(> #chat-panel:not(.hide)) > #answer-options-panel > .border-t {
+		display: none !important;
+	}
+}

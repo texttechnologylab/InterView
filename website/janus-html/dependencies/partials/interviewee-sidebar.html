@@ -1,0 +1,87 @@
+<aside class="flex flex-col bg-white border-l border-gray-200 shadow-lg" style="width: 380px;">
+	<div id="self-view" class="bg-black relative" style="height: 220px;">
+		<div id="videolocal" class="w-full h-full"></div>
+		<div class="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-white text-xs rounded">
+			<i class="fas fa-user mr-1"></i>Sie
+		</div>
+	</div>
+
+	<div class="flex-1 relative overflow-hidden">
+		<div id="answer-options-panel" class="absolute inset-0 overflow-y-auto p-5 bg-white flex flex-col">
+			<h3 class="text-base font-bold text-gray-700 mb-3 flex items-center">
+				<i class="fas fa-clipboard-list mr-2 text-orange-600"></i>Antwortoptionen
+			</h3>
+			<div id="answer-options" class="space-y-2 flex-1">
+				<div class="text-center text-gray-400 mt-12">
+					<i class="fas fa-tasks text-3xl mb-3 opacity-50"></i>
+					<p class="text-sm">Antwortoptionen werden hier angezeigt.</p>
+				</div>
+			</div>
+			<div class="mt-4 pt-3 border-t border-gray-200 text-sm text-gray-500 space-y-1">
+				<p><i class="fas fa-rotate-right mr-1 text-orange-600"></i>Bei Problemen laden Sie bitte die Seite neu.</p>
+				<p><i class="fas fa-phone mr-1 text-orange-600"></i>Tel: <a href="tel:+4995170060255" class="underline">+49 951 700 60 255</a></p>
+				<p><i class="fas fa-envelope mr-1 text-orange-600"></i>E-Mail: <a href="mailto:faces@lifbi.de" class="underline">faces@lifbi.de</a></p>
+			</div>
+		</div>
+
+		<div id="chat-panel" class="hide absolute inset-0 flex flex-col bg-white">
+			<div class="bg-orange-600 text-white px-4 py-2 flex items-center justify-between">
+				<h3 class="font-bold flex items-center"><i class="fas fa-comments mr-2"></i>Chat</h3>
+				<span class="text-xs opacity-80">Zum Schliessen unten auf CHAT tippen</span>
+			</div>
+			<div id="chat-messages" class="flex-1 overflow-y-auto px-4 py-3"></div>
+			<div class="border-t border-gray-200 p-3 flex items-center space-x-2">
+				<input id="chat-input" type="text" placeholder="Nachricht eingeben..." autocomplete="off" disabled
+					class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-600 text-sm disabled:bg-gray-100"/>
+				<button id="chat-send" class="px-4 py-2 bg-orange-600 hover:bg-[#860047] text-white rounded-lg text-sm">
+					<i class="fas fa-paper-plane"></i>
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="relative p-3 pt-2">
+		<div id="device-popover" class="hide absolute bottom-full right-3 mb-3 w-[calc(100%-1.5rem)] bg-white border border-gray-200 rounded-xl shadow-xl p-3 z-30">
+			<h3 class="text-sm font-bold text-gray-700 mb-2">Geräte</h3>
+			<label class="text-xs text-gray-500">Mikrofon</label>
+			<select id="audio-device-select" class="w-full mt-1 mb-2 px-2 py-1 border border-gray-300 rounded text-sm"></select>
+			<div id="camera-device-row">
+				<div class="flex items-center justify-between mt-1 mb-1">
+					<label class="text-xs text-gray-500">Kamera</label>
+					<label class="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+						<input type="checkbox" id="camera-enabled-toggle" checked class="w-3.5 h-3.5 accent-orange-600 cursor-pointer">
+						aktiviert
+					</label>
+				</div>
+				<select id="video-device-select" class="w-full mb-2 px-2 py-1 border border-gray-300 rounded text-sm"></select>
+			</div>
+			<div id="output-device-row">
+				<label class="text-xs text-gray-500">Lautsprecher</label>
+				<select id="output-device-select" class="w-full mt-1 mb-2 px-2 py-1 border border-gray-300 rounded text-sm"></select>
+			</div>
+			<hr class="my-2 border-gray-200"/>
+			<label class="text-xs text-gray-500">Virtueller Hintergrund</label>
+			<div id="vbg-options" class="grid grid-cols-2 gap-1 mt-1 mb-2">
+				<button data-vbg="none" class="vbg-btn active flex flex-col items-center justify-center gap-1 p-1.5 rounded border border-gray-300 text-xs text-gray-600 hover:border-blue-400 hover:bg-blue-50 transition-colors">
+					<i class="fas fa-ban text-base"></i><span>Kein</span>
+				</button>
+				<button data-vbg="blur" class="vbg-btn flex flex-col items-center justify-center gap-1 p-1.5 rounded border border-gray-300 text-xs text-gray-600 hover:border-blue-400 hover:bg-blue-50 transition-colors">
+					<i class="fas fa-droplet text-base"></i><span>Blur</span>
+				</button>
+			</div>
+			<button id="apply-devices" class="w-full px-3 py-2 bg-orange-600 hover:bg-[#860047] text-white rounded text-sm">
+				Geräte übernehmen
+			</button>
+		</div>
+		<div class="flex items-center gap-2">
+			<button id="device-toggle" class="w-10 h-10 shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center border border-gray-200" title="Geräte">
+				<i class="fas fa-cog"></i>
+			</button>
+			<button id="chat-toggle"
+					class="flex-1 px-4 py-4 bg-blue-600 hover:bg-[#00618f] text-white font-bold tracking-wider text-base flex items-center justify-center space-x-2 transition-colors rounded-lg">
+				<i class="fas fa-comments"></i><span>CHAT</span>
+				<span id="chat-unread-count" class="hide ml-2 inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs bg-white/90 text-gray-800">0</span>
+			</button>
+		</div>
+	</div>
+</aside>

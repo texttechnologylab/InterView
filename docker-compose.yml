@@ -1,0 +1,102 @@
+# InterView - full service stack.
+#
+# Works with `docker compose` and with `podman-compose` (the production host runs
+# rootless podman). All published ports are >1024 so no root is needed.
+#
+# Not included, by design:
+#   - MongoDB.       The logging backend points at an existing external instance.
+#   - TLS / vhosts.  A reverse proxy in front of this stack terminates HTTPS and
+#                    maps the public hostnames onto the ports below. See docs/setup.md.
+#
+# Copy .env.example to .env and fill it in before starting anything.
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Janus - WebRTC SFU. Carries interviewer<->interviewee audio/video (videoroom)
+  # and the control channel (textroom).
+  #
+  # The image is built and documented separately:
+  #   https://github.com/texttechnologylab/Janus-Gateway
+  # It ships Janus's stock configuration; ./janus/conf.d holds only the two files
+  # InterView actually changes, which are layered over the defaults at startup.
+  #
+  # network_mode: host is REQUIRED, not a shortcut. ICE has to see the real
+  # interface to build usable candidates, and the RTP range in janus.jcfg
+  # (20000-20100) would otherwise need to be published port by port.
+  # ---------------------------------------------------------------------------
+  janus:
+    image: ghcr.io/texttechnologylab/janus-gateway:${JANUS_TAG:-1.4.2}
+    container_name: interview-janus
+    network_mode: host
+    volumes:
+      - ./janus/conf.d:/etc/janus.d:ro
+      - ${RECORDINGS_DIR:-./data/recordings}:/mnt/recordings:z
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # coturn - TURN relay. Optional: only needed when clients sit behind NATs that
+  # STUN cannot traverse. In practice the VR headsets on university wifi do need it.
+  # Also host-networked, for the same ICE reasons as Janus.
+  # ---------------------------------------------------------------------------
+  coturn:
+    image: docker.io/coturn/coturn:latest
+    container_name: interview-coturn
+    network_mode: host
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - coturn-data:/var/lib/coturn
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Ubiq - room/session server for the VR side. Keeps avatar, transform and
+  # ownership state in sync between headsets. Not involved in audio/video.
+  #   8009 = TCP room server (what the Unity client connects to)
+  #   8011 = status/metrics
+  # ---------------------------------------------------------------------------
+  ubiq:
+    image: docker.texttechnologylab.org/vasili/ubiq-server:latest
+    container_name: interview-ubiq
+    ports:
+      - "${UBIQ_TCP_PORT:-16485}:8009"
+      - "${UBIQ_STATUS_PORT:-16486}:8011"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Va.Si.Li-Lab database API - scene definitions plus the logging endpoints that
+  # every tracking sample, event and questionnaire answer is written through.
+  # Writes to an external MongoDB.
+  # ---------------------------------------------------------------------------
+  database-api:
+    image: docker.texttechnologylab.org/vasili/database-api:0.2
+    container_name: interview-database-api
+    environment:
+      PORT: 16481
+      DB_SERVER: ${DB_SERVER}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      X_API_KEY: ${X_API_KEY}
+    ports:
+      - "${DATABASE_API_PORT:-16481}:16481"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Web client - static nginx serving the interviewer and interviewee pages.
+  # Source lives in ./website. Janus and TURN endpoints are configured in
+  # website/janus-html/settings.js - see docs/services/web_client.md. It is a
+  # static file, so changing it requires rebuilding this image.
+  # ---------------------------------------------------------------------------
+  website:
+    build:
+      context: ./website
+    image: interview/website:local
+    container_name: interview-website
+    ports:
+      - "${WEBSITE_PORT:-18800}:80"
+    restart: unless-stopped
+
+volumes:
+  coturn-data:

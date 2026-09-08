@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chat — FACES</title>
+
+<script src="/dependencies/js/adapter.min.js"></script>
+<script src="/dependencies/js/jquery.min.js"></script>
+<script src="/dependencies/js/toastr.min.js"></script>
+<script src="/dependencies/js/tailwind_3.4.17.js"></script>
+
+<link rel="stylesheet" href="/dependencies/js/all.min.css"/>
+<link rel="stylesheet" href="/dependencies/js/toastr.min.css"/>
+<link rel="stylesheet" href="css/demo.css" type="text/css"/>
+
+<script src="settings.js"></script>
+<script src="janus.js"></script>
+
+<style>
+	body {
+		margin: 0; padding: 0;
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	}
+	#chat-messages a { color: inherit; text-decoration: underline; }
+</style>
+</head>
+<body class="faces-home">
+
+<!-- Token-entry screen -->
+<div id="join-screen" class="min-h-screen flex items-center justify-center p-6">
+	<div class="w-full max-w-md">
+		<div class="text-center mb-8">
+			<div class="faces-home-eyebrow inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm mb-5">
+				<span class="h-2.5 w-2.5 rounded-full bg-orange-600"></span>
+				FACES Chat-Monitor
+			</div>
+			<h1 class="text-3xl font-bold text-gray-900 mb-2">
+				<i class="fas fa-comments mr-2 text-blue-600"></i>Chat beitreten
+			</h1>
+			<p class="text-gray-600 text-sm">Geben Sie die Interview-ID ein, um den Chat zu verfolgen.</p>
+		</div>
+
+		<div class="bg-white rounded-2xl shadow-2xl p-8">
+			<form id="join-form" class="space-y-4">
+				<div>
+					<label class="text-sm font-medium text-gray-700 block mb-1">Interview-ID</label>
+					<input
+						type="text"
+						id="join-id"
+						required
+						class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"/>
+				</div>
+				<button type="submit" class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg">
+					<i class="fas fa-sign-in-alt mr-2"></i>Chat beitreten
+				</button>
+			</form>
+		</div>
+
+		<p class="text-center text-gray-500 text-xs mt-6">
+			Dieser Modus verbindet sich nur mit dem Text-Kanal — keine Kamera, kein Mikrofon.
+		</p>
+	</div>
+</div>
+
+<!-- Chat screen -->
+<div id="chat-screen" class="hide min-h-screen flex flex-col">
+	<header class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
+		<div class="flex items-center gap-3">
+			<i class="fas fa-comments text-blue-600 text-lg"></i>
+			<div>
+				<h1 class="text-base font-semibold text-gray-900">Chat-Monitor</h1>
+				<p class="text-xs text-gray-500">Raum <span id="header-room">—</span></p>
+			</div>
+		</div>
+		<div class="flex items-center gap-3">
+			<span id="connection-status" class="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+				<span id="connection-dot" class="w-2 h-2 rounded-full bg-gray-400"></span>
+				<span id="connection-label">Verbinde…</span>
+			</span>
+			<button id="diagnostic-btn" type="button" title="Diagnose-Bericht anzeigen"
+					class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm flex items-center gap-2">
+				<i class="fas fa-stethoscope"></i><span class="hidden sm:inline">Diagnose</span>
+			</button>
+			<button id="leave-btn" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm">
+				<i class="fas fa-arrow-right-from-bracket mr-1"></i>Verlassen
+			</button>
+		</div>
+	</header>
+
+	<div class="flex-1 flex overflow-hidden">
+		<aside class="w-56 bg-white border-r border-gray-200 p-4 overflow-y-auto hidden md:block">
+			<h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Teilnehmer:in</h2>
+			<ul id="participants" class="space-y-1 text-sm text-gray-700"></ul>
+		</aside>
+
+		<main class="flex-1 flex flex-col bg-gray-50">
+			<div id="chat-messages" class="flex-1 overflow-y-auto px-4 py-4"></div>
+			<div class="border-t border-gray-200 bg-white p-3 flex items-center gap-2">
+				<input
+					id="chat-input"
+					type="text"
+					placeholder="Nachricht eingeben…"
+					autocomplete="off"
+					disabled
+					class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm disabled:bg-gray-100"/>
+				<button id="chat-send" disabled class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg text-sm">
+					<i class="fas fa-paper-plane"></i>
+				</button>
+			</div>
+		</main>
+	</div>
+</div>
+
+<script>
+(function () {
+	'use strict';
+
+	// --- Diagnostic capture ---
+	// Wrap console early so the buffer fills from page load. Same ring-buffer
+	// pattern as js/diagnostics.js — kept inline so chat.html has no module deps.
+	const MAX_LOGS = 500;
+	const MAX_PC_SNAPSHOTS = 20;
+	const persistentLogs = [];
+	const pcSnapshots = []; // detached PCs preserved for the report
+	(function installCapture() {
+		const original = { log: console.log, warn: console.warn, error: console.error, debug: console.debug, info: console.info };
+		function push(level, args) {
+			const msg = args.map((a) => {
+				if (a instanceof Error) return a.stack || (a.name + ': ' + a.message);
+				if (typeof a === 'object') { try { return JSON.stringify(a); } catch (e) { return String(a); } }
+				return String(a);
+			}).join(' ');
+			persistentLogs.push({ level, msg, time: new Date().toLocaleTimeString() });
+			if (persistentLogs.length > MAX_LOGS) persistentLogs.shift();
+		}
+		console.log   = (...a) => { push('log',   a); original.log.apply(console, a); };
+		console.warn  = (...a) => { push('warn',  a); original.warn.apply(console, a); };
+		console.error = (...a) => { push('error', a); original.error.apply(console, a); };
+		console.debug = (...a) => { push('debug', a); original.debug.apply(console, a); };
+		console.info  = (...a) => { push('info',  a); original.info.apply(console, a); };
+		window.addEventListener('error', (e) => push('error', ['[window.onerror]', e.message, 'at', (e.filename || '?') + ':' + (e.lineno || '?')]));
+		window.addEventListener('unhandledrejection', (e) => {
+			const reason = e.reason && (e.reason.stack || e.reason.message || String(e.reason));
+			push('error', ['[unhandledrejection]', reason]);
+		});
+	})();
+
+	// --- Helpers ---
+
+	function getQueryParam(name) {
+		const params = new URLSearchParams(window.location.search);
+		return params.get(name) || params.get(name.toUpperCase()) || '';
+	}
+
+	// Same hashing as state.js so we land in the same Janus room as the interview pages.
+	function roomIdFromString(s) {
+		const str = String(s).trim();
+		if (/^\d+$/.test(str)) return parseInt(str, 10);
+		let h = 5381;
+		for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) | 0;
+		return Math.abs(h) || 1;
+	}
+
+	function nowTime() {
+		const d = new Date();
+		return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+	}
+
+	function displayNameFor(username, display) {
+		if (display) return display;
+		if (typeof username === 'string' && username.startsWith('interviewer')) return 'Interviewer:in';
+		if (typeof username === 'string' && username.startsWith('interviewee')) return 'Teilnehmer:in';
+		if (typeof username === 'string' && username.startsWith('monitor')) return 'Monitor';
+		return username || 'Unbekannt';
+	}
+
+	function escapeHtml(s) {
+		return String(s)
+			.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+	}
+
+	// --- UI helpers ---
+
+	function setStatus(state, label) {
+		const dot = document.getElementById('connection-dot');
+		const lbl = document.getElementById('connection-label');
+		if (lbl) lbl.textContent = label;
+		if (!dot) return;
+		dot.className = 'w-2 h-2 rounded-full ' + ({
+			connected: 'bg-green-500',
+			connecting: 'bg-yellow-500 animate-pulse',
+			error: 'bg-red-500'
+		}[state] || 'bg-gray-400');
+	}
+
+	function appendChatMessage({ from, text, mine, system }) {
+		const box = document.getElementById('chat-messages');
+		if (!box) return;
+		const wrap = document.createElement('div');
+		if (system) {
+			wrap.className = 'text-center text-xs text-gray-500 italic my-2';
+			wrap.textContent = text;
+		} else {
+			wrap.className = 'flex flex-col mb-3 ' + (mine ? 'items-end' : 'items-start');
+			const meta = document.createElement('div');
+			meta.className = 'text-xs text-gray-500 mb-1';
+			meta.textContent = (mine ? 'Sie' : (from || 'Andere')) + ' • ' + nowTime();
+			const bubble = document.createElement('div');
+			bubble.className = 'max-w-[85%] px-3 py-2 rounded-2xl text-sm break-words ' +
+				(mine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm');
+			const urlRegex = /(https?:\/\/[^\s]+)/g;
+			let lastIndex = 0;
+			let match;
+			while ((match = urlRegex.exec(text)) !== null) {
+				if (match.index > lastIndex) bubble.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+				const link = document.createElement('a');
+				link.href = match[0];
+				link.textContent = match[0];
+				link.target = '_blank';
+				link.rel = 'noopener noreferrer';
+				link.className = 'underline';
+				bubble.appendChild(link);
+				lastIndex = match.index + match[0].length;
+			}
+			if (lastIndex < text.length) bubble.appendChild(document.createTextNode(text.slice(lastIndex)));
+			wrap.appendChild(meta);
+			wrap.appendChild(bubble);
+		}
+		box.appendChild(wrap);
+		box.scrollTop = box.scrollHeight;
+	}
+
+	function renderParticipants(list) {
+		const ul = document.getElementById('participants');
+		if (!ul) return;
+		ul.innerHTML = '';
+		if (!list || !list.length) {
+			const li = document.createElement('li');
+			li.className = 'text-xs text-gray-400 italic';
+			li.textContent = 'Noch niemand hier';
+			ul.appendChild(li);
+			return;
+		}
+		for (const p of list) {
+			const li = document.createElement('li');
+			li.className = 'flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-50';
+			const name = displayNameFor(p.username, p.display);
+			li.innerHTML = '<i class="fas fa-circle text-green-500 text-[6px]"></i><span>' + escapeHtml(name) + '</span>';
+			ul.appendChild(li);
+		}
+	}
+
+	// --- Janus + textroom state ---
+
+	const sessionState = {
+		janus: null,
+		handle: null,
+		room: null,
+		roomLabel: null,
+		myDisplayId: null,
+		myDisplayName: 'Interviewer:in',
+		chatReady: false,
+		transactions: {},
+		participants: new Map() // username -> display
+	};
+
+	// --- Textroom retry (same pattern as textroom.js — keep the two in sync) ---
+
+	const MAX_RETRIES = 6;
+
+	// Progress-based negotiation deadlines rather than a fixed wall clock. See
+	// the long note in js/textroom.js: the textroom needs several more round
+	// trips than a media PeerConnection, and a fixed deadline kept killing slow
+	// but healthy negotiations moments before they'd have completed — with the
+	// retry costing strictly more than the wait.
+	const NO_PROGRESS_TIMEOUT_MS = 20000;
+	const ABSOLUTE_TIMEOUT_MS = 45000;
+
+	// Per-request retransmission, so losing one application round trip costs one
+	// round trip instead of a whole PeerConnection rebuild.
+	const REQUEST_TIMEOUT_MS = 4000;
+	const REQUEST_TRIES = 3;
+
+	let retryCount = 0;
+	let attaching = false;
+	let progressTimer = null;
+	let absoluteTimer = null;
+
+	// Generation guard: detach() fires the old handle's oncleanup synchronously,
+	// and the server can still deliver events for it afterwards. Without this,
+	// a superseded handle resets chatReady on — or tears down — the healthy
+	// handle that replaced it, wedging the monitor silently.
+	let handleGen = 0;
+
+	function clearNegotiationTimers() {
+		if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
+		if (absoluteTimer) { clearTimeout(absoluteTimer); absoluteTimer = null; }
+	}
+
+	function noteProgress(gen, what) {
+		if (gen !== handleGen || sessionState.chatReady) return;
+		console.debug('[CHAT] progress:', what);
+		if (progressTimer) clearTimeout(progressTimer);
+		progressTimer = setTimeout(
+			() => onNegotiationStalled(gen, 'no-progress-after:' + what),
+			NO_PROGRESS_TIMEOUT_MS
+		);
+	}
+
+	function onNegotiationStalled(gen, reason) {
+		if (gen !== handleGen || sessionState.chatReady) return;
+		console.warn('[CHAT] negotiation stalled —', reason);
+		clearNegotiationTimers();
+		detachBrokenHandle(reason);
+		attaching = false;
+		scheduleRetry(reason);
+	}
+
+	function scheduleRetry(reason) {
+		if (sessionState.chatReady) return;
+		clearNegotiationTimers();
+		if (retryCount >= MAX_RETRIES) {
+			console.error('[CHAT] giving up after', retryCount, 'retries; lastReason=', reason);
+			setStatus('error', 'Verbindung fehlgeschlagen');
+			appendChatMessage({ system: true, text: 'Verbindung zum Chat konnte nicht aufgebaut werden. Seite neu laden.' });
+			return;
+		}
+		const delay = Math.min(500 * Math.pow(2, retryCount), 5000);
+		retryCount += 1;
+		console.warn('[CHAT] retry #' + retryCount + ' in', delay, 'ms; reason=', reason);
+		setStatus('connecting', 'Erneut verbinden…');
+		setTimeout(() => attachTextroom(), delay);
+	}
+
+	// Send a textroom request and retransmit if unanswered. Every attempt's
+	// transaction id stays registered until one of them answers, so a slow
+	// response to an earlier attempt still resolves.
+	function sendTrackedRequest(gen, build, onResponse, onGiveUp) {
+		const ids = [];
+		let attempt = 0;
+		let timer = null;
+
+		const cleanup = () => {
+			if (timer) { clearTimeout(timer); timer = null; }
+			for (const id of ids) delete sessionState.transactions[id];
+		};
+
+		const attemptSend = () => {
+			if (gen !== handleGen || !sessionState.handle) return;
+			attempt += 1;
+			const payload = build();
+			const tx = payload.transaction;
+			ids.push(tx);
+			sessionState.transactions[tx] = (response) => {
+				cleanup();
+				if (gen !== handleGen) return;
+				onResponse(response);
+			};
+			console.debug('[CHAT] request', payload.textroom, 'attempt', attempt, 'tx=', tx);
+			sessionState.handle.data({
+				text: JSON.stringify(payload),
+				error: (reason) => console.warn('[CHAT] request send error (will retry)', payload.textroom, reason)
+			});
+			timer = setTimeout(() => {
+				if (gen !== handleGen) return;
+				if (attempt >= REQUEST_TRIES) {
+					console.warn('[CHAT] request', payload.textroom, 'unanswered after', attempt, 'attempts');
+					cleanup();
+					onGiveUp();
+					return;
+				}
+				console.warn('[CHAT] request', payload.textroom, 'timed out — retransmitting');
+				attemptSend();
+			}, REQUEST_TIMEOUT_MS);
+		};
+
+		attemptSend();
+	}
+
+	function detachBrokenHandle(reason) {
+		const h = sessionState.handle;
+		sessionState.handle = null;
+		sessionState.chatReady = false;
+		sessionState.transactions = {};
+		clearNegotiationTimers();
+		// Retire this generation before detach() fires its synchronous oncleanup.
+		handleGen += 1;
+		if (!h) return;
+		// Snapshot the failing PC's stats BEFORE detach destroys them
+		const pc = h.webrtcStuff && h.webrtcStuff.pc;
+		const snapshotPromise = pc
+			? summarizePcChat('textroom (data channel) [detached: ' + (reason || 'unknown') + ']', h, pc)
+				.then((snap) => { snap.detachedAt = new Date().toLocaleTimeString(); pcSnapshots.push(snap); if (pcSnapshots.length > MAX_PC_SNAPSHOTS) pcSnapshots.shift(); })
+				.catch(() => {})
+			: Promise.resolve();
+		snapshotPromise.finally(() => {
+			try {
+				h.detach({
+					success: () => console.debug('[CHAT] broken handle detached'),
+					error: (e) => console.warn('[CHAT] detach error (ignored)', e)
+				});
+			} catch (e) { console.warn('[CHAT] detach threw (ignored)', e && e.message); }
+		});
+	}
+
+	// --- Textroom data handling ---
+
+	function handleTextroomData(raw) {
+		let json;
+		try { json = JSON.parse(raw); } catch (e) { return; }
+		const tx = json['transaction'];
+		if (tx && sessionState.transactions[tx]) {
+			sessionState.transactions[tx](json);
+			delete sessionState.transactions[tx];
+			return;
+		}
+		const what = json['textroom'];
+		if (what === 'message') {
+			const text = json['text'] || '';
+			const fromUser = json['from'];
+			if (fromUser === sessionState.myDisplayId) return;
+			// Skip structured payloads — those are app messages, not chat
+			let payload = null;
+			try { payload = JSON.parse(text); } catch (e) { /* not json, treat as chat */ }
+			if (payload && payload.kind) {
+				console.debug('[CHAT] ignoring structured payload kind=', payload.kind);
+				return;
+			}
+			const display = displayNameFor(fromUser, json['display']);
+			appendChatMessage({ from: display, text });
+		} else if (what === 'announcement') {
+			appendChatMessage({ system: true, text: json['text'] || '' });
+		} else if (what === 'join') {
+			const username = json['username'];
+			if (username && username !== sessionState.myDisplayId) {
+				const display = displayNameFor(username, json['display']);
+				sessionState.participants.set(username, display);
+				renderParticipants(Array.from(sessionState.participants, ([u, d]) => ({ username: u, display: d })));
+				appendChatMessage({ system: true, text: display + ' hat den Chat betreten' });
+			}
+		} else if (what === 'leave') {
+			const username = json['username'];
+			if (username) {
+				const display = sessionState.participants.get(username) || displayNameFor(username, json['display']);
+				sessionState.participants.delete(username);
+				renderParticipants(Array.from(sessionState.participants, ([u, d]) => ({ username: u, display: d })));
+				appendChatMessage({ system: true, text: display + ' hat den Chat verlassen' });
+			}
+		}
+	}
+
+	function createTextroom(gen, then) {
+		sendTrackedRequest(gen, () => ({
+			textroom: 'create',
+			transaction: Janus.randomString(12),
+			room: sessionState.room,
+			permanent: false,
+			description: 'Interview ' + sessionState.roomLabel,
+			history: 0
+		}), (response) => {
+			// "Room exists" is the normal outcome; the join that follows is the
+			// real test of whether the room is usable.
+			if (response['textroom'] === 'error') console.debug('[CHAT] create returned an error (continuing to join)', response);
+			then();
+		}, () => {
+			console.warn('[CHAT] create unanswered — attempting join anyway');
+			then();
+		});
+	}
+
+	function joinTextroom(gen, triedCreate) {
+		// NOTE: keeps the 'interviewer' prefix deliberately for now. Switching to
+		// a 'monitor' prefix (which displayNameFor above already anticipates)
+		// would change what the participant sees when a supervisor opens this
+		// page, so it needs a product decision, not a silent refactor.
+		sessionState.myDisplayId = 'interviewer' + Janus.randomString(6);
+		const displayId = sessionState.myDisplayId;
+		console.debug('[CHAT] joining as', displayId, 'triedCreate=', triedCreate);
+
+		sendTrackedRequest(gen, () => ({
+			textroom: 'join',
+			transaction: Janus.randomString(12),
+			room: sessionState.room,
+			username: displayId,
+			display: sessionState.myDisplayName
+		}), (response) => {
+			if (response['textroom'] === 'error') {
+				// The room may not exist yet (monitor opened before the interview
+				// started), or the username may have collided. Creating and
+				// rejoining with a fresh name covers both, without depending on
+				// plugin error codes that differ across Janus versions.
+				if (!triedCreate) {
+					console.warn('[CHAT] join failed — creating room and retrying', response);
+					createTextroom(gen, () => joinTextroom(gen, true));
+					return;
+				}
+				console.error('[CHAT] join error', response);
+				detachBrokenHandle('join-error');
+				scheduleRetry('join-error');
+				return;
+			}
+			if (gen !== handleGen) return;
+			sessionState.chatReady = true;
+			clearNegotiationTimers();
+			retryCount = 0;
+			setStatus('connected', 'Verbunden');
+			const input = document.getElementById('chat-input');
+			const sendBtn = document.getElementById('chat-send');
+			if (input) input.removeAttribute('disabled');
+			if (sendBtn) sendBtn.removeAttribute('disabled');
+			appendChatMessage({ system: true, text: 'Chat verbunden' });
+			// Seed participant list
+			const list = response['participants'] || [];
+			for (const p of list) {
+				sessionState.participants.set(p.username, p.display);
+			}
+			renderParticipants(list);
+		}, () => {
+			console.error('[CHAT] join unanswered after retransmits');
+			detachBrokenHandle('join-unanswered');
+			scheduleRetry('join-unanswered');
+		});
+	}
+
+	function attachTextroom() {
+		if (attaching) return;
+		if (sessionState.handle) detachBrokenHandle('superseded-by-new-attach');
+		const gen = ++handleGen;
+		attaching = true;
+		sessionState.chatReady = false;
+		setStatus('connecting', 'Verbinde…');
+		console.debug('[CHAT] attachTextroom attempt', retryCount + 1, 'gen=', gen);
+
+		clearNegotiationTimers();
+		absoluteTimer = setTimeout(() => onNegotiationStalled(gen, 'absolute-timeout'), ABSOLUTE_TIMEOUT_MS);
+		noteProgress(gen, 'attach-requested');
+
+		sessionState.janus.attach({
+			plugin: 'janus.plugin.textroom',
+			opaqueId: 'chat-monitor-' + Janus.randomString(12),
+			success: (pluginHandle) => {
+				if (gen !== handleGen) {
+					console.debug('[CHAT] attach success for superseded gen=', gen, '— detaching');
+					try { pluginHandle.detach(); } catch (e) { /* already gone */ }
+					return;
+				}
+				sessionState.handle = pluginHandle;
+				attaching = false;
+				console.debug('[CHAT] attached, handleId=', pluginHandle.getId());
+				noteProgress(gen, 'plugin-attached');
+				pluginHandle.send({ message: { request: 'setup' } });
+			},
+			error: (error) => {
+				if (gen !== handleGen) return;
+				console.error('[CHAT] attach error', error);
+				attaching = false;
+				scheduleRetry('attach-error');
+			},
+			onmessage: (msg, jsep) => {
+				if (gen !== handleGen) return;
+				if (msg['error']) console.error('[CHAT] message error', msg);
+				if (jsep) {
+					noteProgress(gen, 'offer-received');
+					sessionState.handle.createAnswer({
+						jsep,
+						tracks: [{ type: 'data' }],
+						success: (jsep) => {
+							if (gen !== handleGen) return;
+							noteProgress(gen, 'answer-created');
+							sessionState.handle.send({ message: { request: 'ack' }, jsep });
+						},
+						error: (error) => {
+							if (gen !== handleGen) return;
+							console.error('[CHAT] answer error', error);
+							detachBrokenHandle('answer-error');
+							scheduleRetry('answer-error');
+						}
+					});
+				}
+			},
+			ondataopen: () => {
+				if (gen !== handleGen) return;
+				console.debug('[CHAT] data channel open');
+				noteProgress(gen, 'datachannel-open');
+				// Monitor joins straight away — it does not own the room. Creating
+				// only happens if the join says the room isn't there yet.
+				joinTextroom(gen, false);
+			},
+			ondata: (data) => {
+				if (gen !== handleGen) return;
+				handleTextroomData(data);
+			},
+			oncleanup: () => {
+				if (gen !== handleGen) {
+					console.debug('[CHAT] oncleanup from superseded gen=', gen, '— ignoring');
+					return;
+				}
+				console.warn('[CHAT] oncleanup fired');
+				sessionState.chatReady = false;
+			},
+			webrtcState: (on, reason) => {
+				if (gen !== handleGen) return;
+				console.debug('[CHAT] webrtcState ->', on, 'reason=', reason);
+				if (on === true) {
+					noteProgress(gen, 'webrtc-up');
+					return;
+				}
+				const wasReady = sessionState.chatReady;
+				detachBrokenHandle('webrtc-down:' + (reason || ''));
+				if (wasReady) retryCount = 0;
+				scheduleRetry('webrtc-down:' + (reason || ''));
+			},
+			iceState: (s) => {
+				if (gen !== handleGen) return;
+				console.debug('[CHAT] iceState ->', s);
+				if (s === 'connected' || s === 'completed') {
+					noteProgress(gen, 'ice-' + s);
+					return;
+				}
+				// 'disconnected' usually recovers on its own; only act on 'failed'.
+				if (s === 'failed') {
+					detachBrokenHandle('ice-failed');
+					scheduleRetry('ice-failed');
+				}
+			}
+		});
+	}
+
+	function sendChatMessage() {
+		const input = document.getElementById('chat-input');
+		if (!input) return;
+		const text = (input.value || '').trim();
+		if (!text) return;
+		if (!sessionState.handle || !sessionState.chatReady) {
+			toastr && toastr.warning('Chat verbindet noch…');
+			return;
+		}
+		const message = {
+			textroom: 'message',
+			transaction: Janus.randomString(12),
+			room: sessionState.room,
+			text: text,
+			ack: false
+		};
+		sessionState.handle.data({
+			text: JSON.stringify(message),
+			error: (reason) => {
+				console.error('[CHAT] send error', reason);
+				toastr && toastr.error('Senden fehlgeschlagen');
+			},
+			success: () => {
+				appendChatMessage({ text, mine: true });
+				input.value = '';
+			}
+		});
+	}
+
+	// --- Session bootstrap ---
+
+	function startChat(rawId) {
+		sessionState.roomLabel = String(rawId);
+		sessionState.room = roomIdFromString(rawId);
+		sessionState.myDisplayName = 'Interviewer:in';
+
+		document.getElementById('header-room').textContent = sessionState.roomLabel;
+		document.getElementById('join-screen').classList.add('hide');
+		document.getElementById('chat-screen').classList.remove('hide');
+
+		Janus.init({
+			debug: 'warn',
+			callback: () => {
+				if (!Janus.isWebrtcSupported()) {
+					setStatus('error', 'Browser nicht unterstützt');
+					appendChatMessage({ system: true, text: 'Dieser Browser unterstützt kein WebRTC.' });
+					return;
+				}
+				sessionState.janus = new Janus({
+					server: server,
+					iceServers: iceServers,
+					success: () => {
+						console.debug('[CHAT] Janus session ready');
+						attachTextroom();
+					},
+					error: (error) => {
+						console.error('[CHAT] Janus session error', error);
+						setStatus('error', 'Server nicht erreichbar');
+						appendChatMessage({ system: true, text: 'Verbindung zum Server fehlgeschlagen: ' + error });
+					},
+					destroyed: () => { /* user navigated away */ }
+				});
+			}
+		});
+
+		// Persist the new URL so refresh keeps the room without showing the join screen again.
+		const url = new URL(window.location.href);
+		url.searchParams.set('ID', rawId);
+		url.searchParams.delete('name');
+		window.history.replaceState({}, '', url.toString());
+	}
+
+	function leaveChat() {
+		try {
+			if (sessionState.handle && sessionState.chatReady) {
+				const leave = { textroom: 'leave', transaction: Janus.randomString(12), room: sessionState.room };
+				sessionState.handle.data({ text: JSON.stringify(leave), error: () => {} });
+			}
+		} catch (e) {}
+		try { if (sessionState.janus) sessionState.janus.destroy({ notifyDestroyed: false }); } catch (e) {}
+		window.location.href = '/chat';
+	}
+
+	// --- Diagnostic modal ---
+
+	function describeCandidate(c) {
+		if (!c) return '?';
+		const ipv = (c.address || c.ip || '').includes(':') ? 'IPv6' : 'IPv4';
+		return c.candidateType + ' ' + (c.protocol || '') + ' ' + ipv
+			+ ' ' + (c.address || c.ip || '?') + ':' + (c.port || '?')
+			+ (c.relayProtocol ? '/' + c.relayProtocol : '')
+			+ (c.candidateType === 'relay' && c.url ? ' via ' + c.url : '');
+	}
+
+	async function summarizePcChat(name, handle, pc) {
+		const summary = {
+			name,
+			handleId: handle && typeof handle.getId === 'function' ? handle.getId() : null,
+			iceConnectionState: pc.iceConnectionState,
+			iceGatheringState: pc.iceGatheringState,
+			connectionState: pc.connectionState,
+			signalingState: pc.signalingState,
+			selectedCandidatePair: null,
+			activeCandidatePair: null,
+			candidatePairs: [],
+			localCandidates: [],
+			remoteCandidates: [],
+			transports: [],
+			dataChannels: [],
+			anomalies: []
+		};
+		try {
+			const stats = await pc.getStats(null);
+			const byId = new Map();
+			stats.forEach((s) => byId.set(s.id, s));
+			stats.forEach((s) => {
+				if (s.type === 'candidate-pair') {
+					const local = byId.get(s.localCandidateId);
+					const remote = byId.get(s.remoteCandidateId);
+					const pair = {
+						state: s.state, nominated: s.nominated, selected: s.selected,
+						writable: s.writable, readable: s.readable,
+						responsesReceived: s.responsesReceived,
+						requestsSent: s.requestsSent,
+						requestsReceived: s.requestsReceived,
+						bytesSent: s.bytesSent, bytesReceived: s.bytesReceived,
+						packetsSent: s.packetsSent, packetsReceived: s.packetsReceived,
+						currentRoundTripTime: s.currentRoundTripTime,
+						availableOutgoingBitrate: s.availableOutgoingBitrate,
+						localRaw: local, remoteRaw: remote,
+						local: describeCandidate(local),
+						remote: describeCandidate(remote),
+						_traffic: (s.bytesSent || 0) + (s.bytesReceived || 0)
+					};
+					summary.candidatePairs.push(pair);
+					if (s.nominated || s.selected) summary.selectedCandidatePair = pair;
+				} else if (s.type === 'local-candidate') {
+					summary.localCandidates.push({
+						type: s.candidateType, protocol: s.protocol, relayProtocol: s.relayProtocol,
+						address: s.address || s.ip, port: s.port, url: s.url, networkType: s.networkType,
+						isIPv6: (s.address || s.ip || '').includes(':')
+					});
+				} else if (s.type === 'remote-candidate') {
+					summary.remoteCandidates.push({
+						type: s.candidateType, protocol: s.protocol,
+						address: s.address || s.ip, port: s.port,
+						isIPv6: (s.address || s.ip || '').includes(':')
+					});
+				} else if (s.type === 'transport') {
+					summary.transports.push({
+						dtlsState: s.dtlsState, iceState: s.iceState, iceRole: s.iceRole,
+						selectedCandidatePairChanges: s.selectedCandidatePairChanges,
+						bytesSent: s.bytesSent, bytesReceived: s.bytesReceived,
+						packetsSent: s.packetsSent, packetsReceived: s.packetsReceived,
+						dtlsCipher: s.dtlsCipher, srtpCipher: s.srtpCipher, tlsVersion: s.tlsVersion
+					});
+				} else if (s.type === 'data-channel') {
+					summary.dataChannels.push({ label: s.label, state: s.state, messagesSent: s.messagesSent, messagesReceived: s.messagesReceived, bytesSent: s.bytesSent, bytesReceived: s.bytesReceived });
+				}
+			});
+
+			const traffickers = summary.candidatePairs.filter((p) => p._traffic > 0).sort((a, b) => b._traffic - a._traffic);
+			summary.activeCandidatePair = traffickers[0] || null;
+
+			const sel = summary.selectedCandidatePair;
+			const act = summary.activeCandidatePair;
+			if (sel && act && sel !== act) summary.anomalies.push('SELECTED pair carries no traffic but ACTIVE pair carries ' + act._traffic + ' bytes — ICE migration / mislabeled selection');
+			if (sel && sel.state && sel.state !== 'succeeded' && act) summary.anomalies.push('SELECTED pair state=' + sel.state + ' yet data is flowing on a different pair');
+			const t = summary.transports[0];
+			if (t && t.selectedCandidatePairChanges > 1) summary.anomalies.push('ICE pair changed ' + t.selectedCandidatePairChanges + ' times — path was unstable');
+			const hasIPv6Local = summary.localCandidates.some((c) => c.isIPv6);
+			const hasIPv6Remote = summary.remoteCandidates.some((c) => c.isIPv6);
+			if (hasIPv6Local && !hasIPv6Remote) summary.anomalies.push('Gathered IPv6 local candidates but remote is IPv4-only — those pairs can never connect');
+			const hostPairs = summary.candidatePairs.filter((p) => p.localRaw && p.localRaw.candidateType === 'host');
+			if (hostPairs.length && hostPairs.every((p) => p.state === 'failed')) summary.anomalies.push('All host-to-host candidate pairs failed — direct P2P blocked, forced through TURN relay');
+		} catch (e) { summary.statsError = (e && e.message) || String(e); }
+		return summary;
+	}
+
+	async function snapshotChatPc(reason) {
+		const h = sessionState.handle;
+		if (!h) return;
+		const pc = h.webrtcStuff && h.webrtcStuff.pc;
+		if (!pc) return;
+		try {
+			const snap = await summarizePcChat('textroom (data channel) [detached: ' + (reason || 'unknown') + ']', h, pc);
+			snap.detachedAt = new Date().toLocaleTimeString();
+			pcSnapshots.push(snap);
+			if (pcSnapshots.length > MAX_PC_SNAPSHOTS) pcSnapshots.shift();
+		} catch (e) { /* ignore */ }
+	}
+
+	async function collectStats() {
+		const out = [];
+		const h = sessionState.handle;
+		if (h) {
+			const pc = h.webrtcStuff && h.webrtcStuff.pc;
+			if (pc) out.push(await summarizePcChat('textroom (data channel)', h, pc));
+			else out.push({ name: 'textroom', missing: 'no underlying PC' });
+		}
+		for (const s of pcSnapshots) out.push(s);
+		if (!out.length) return [{ name: 'textroom', missing: 'no active handle' }];
+		return out;
+	}
+
+	async function buildReport() {
+		const env = {
+			ts: new Date().toISOString(),
+			url: window.location.href,
+			userAgent: navigator.userAgent,
+			platform: navigator.platform,
+			language: navigator.language,
+			viewport: window.innerWidth + 'x' + window.innerHeight,
+			online: navigator.onLine,
+			connectionType: (navigator.connection && navigator.connection.effectiveType) || null,
+			downlinkMbps: (navigator.connection && navigator.connection.downlink) || null
+		};
+		const session = {
+			mode: 'chat-monitor',
+			roomLabel: sessionState.roomLabel,
+			roomId: sessionState.room,
+			myDisplayId: sessionState.myDisplayId,
+			chatReady: sessionState.chatReady
+		};
+		let pcs = [];
+		try { pcs = await collectStats(); } catch (e) { pcs = [{ error: (e && e.message) || String(e) }]; }
+		const lines = [];
+		lines.push('===== FACES diagnostic report (chat-monitor) =====');
+		lines.push('');
+		lines.push('--- Environment ---');
+		for (const k of Object.keys(env)) lines.push(k + ': ' + env[k]);
+		lines.push('');
+		lines.push('--- Session ---');
+		for (const k of Object.keys(session)) lines.push(k + ': ' + session[k]);
+		lines.push('');
+		lines.push('--- WebRTC PeerConnection ---');
+		for (const pc of pcs) {
+			lines.push('');
+			lines.push('[' + pc.name + ']' + (pc.detachedAt ? ' (snapshot taken ' + pc.detachedAt + ')' : ''));
+			if (pc.missing) { lines.push('  ' + pc.missing); continue; }
+			if (pc.statsError) lines.push('  statsError: ' + pc.statsError);
+			lines.push('  handleId: ' + pc.handleId);
+			lines.push('  ice: ' + pc.iceConnectionState + ' / gathering ' + pc.iceGatheringState + ' / signaling ' + pc.signalingState + ' / connection ' + pc.connectionState);
+			if (pc.anomalies && pc.anomalies.length) {
+				lines.push('  ** ANOMALIES **');
+				for (const a of pc.anomalies) lines.push('    !! ' + a);
+			}
+			for (const t of pc.transports) {
+				lines.push('  transport: dtls=' + t.dtlsState + ' ice=' + t.iceState + ' iceRole=' + t.iceRole
+					+ ' bytesOut=' + t.bytesSent + ' bytesIn=' + t.bytesReceived
+					+ ' pktsOut=' + t.packetsSent + ' pktsIn=' + t.packetsReceived
+					+ ' pairChanges=' + t.selectedCandidatePairChanges
+					+ (t.dtlsCipher ? ' dtls=' + t.dtlsCipher : '')
+					+ (t.srtpCipher ? ' srtp=' + t.srtpCipher : ''));
+			}
+			if (pc.activeCandidatePair) {
+				const p = pc.activeCandidatePair;
+				lines.push('  ACTIVE pair (carrying traffic): ' + p.local + '  -->  ' + p.remote);
+				lines.push('    state=' + p.state + ' rtt=' + p.currentRoundTripTime + 's writable=' + p.writable + ' readable=' + p.readable
+					+ ' bytesOut=' + p.bytesSent + ' bytesIn=' + p.bytesReceived + ' pktsOut=' + p.packetsSent + ' pktsIn=' + p.packetsReceived);
+			}
+			if (pc.selectedCandidatePair && pc.selectedCandidatePair !== pc.activeCandidatePair) {
+				const p = pc.selectedCandidatePair;
+				lines.push('  SELECTED pair (browser-flagged, may be wrong): ' + p.local + '  -->  ' + p.remote);
+				lines.push('    state=' + p.state + ' rtt=' + p.currentRoundTripTime + 's writable=' + p.writable
+					+ ' bytesOut=' + p.bytesSent + ' bytesIn=' + p.bytesReceived);
+			}
+			if (pc.candidatePairs && pc.candidatePairs.length) {
+				const shown = new Set([pc.activeCandidatePair, pc.selectedCandidatePair]);
+				const other = pc.candidatePairs.filter((p) => !shown.has(p));
+				if (other.length) {
+					lines.push('  all other candidate pairs (' + other.length + '):');
+					const order = { 'succeeded': 0, 'in-progress': 1, 'inprogress': 1, 'waiting': 2, 'frozen': 3, 'failed': 4, 'cancelled': 5 };
+					other.sort((a, b) => (order[a.state] ?? 9) - (order[b.state] ?? 9));
+					for (const p of other) {
+						lines.push('    [' + p.state + '] ' + p.local + ' --> ' + p.remote
+							+ ' (resp=' + (p.responsesReceived || 0) + ' req=' + (p.requestsSent || 0) + ' bytesOut=' + (p.bytesSent || 0) + ' bytesIn=' + (p.bytesReceived || 0) + ')');
+					}
+				}
+			}
+			if (pc.localCandidates && pc.localCandidates.length) {
+				lines.push('  local candidates gathered (' + pc.localCandidates.length + '):');
+				for (const c of pc.localCandidates) {
+					lines.push('    ' + c.type + ' ' + (c.protocol || '?') + (c.relayProtocol ? '/' + c.relayProtocol : '')
+						+ ' ' + (c.isIPv6 ? 'IPv6' : 'IPv4')
+						+ ' ' + (c.address || '?') + ':' + (c.port || '?')
+						+ (c.networkType ? ' (' + c.networkType + ')' : '')
+						+ (c.url ? ' via ' + c.url : ''));
+				}
+			}
+			if (pc.remoteCandidates && pc.remoteCandidates.length) {
+				lines.push('  remote candidates received (' + pc.remoteCandidates.length + '):');
+				for (const c of pc.remoteCandidates) {
+					lines.push('    ' + c.type + ' ' + (c.protocol || '?') + ' ' + (c.isIPv6 ? 'IPv6' : 'IPv4') + ' ' + (c.address || '?') + ':' + (c.port || '?'));
+				}
+			}
+			for (const d of pc.dataChannels) lines.push('  dataChannel "' + d.label + '" ' + d.state + ' msgsOut=' + d.messagesSent + ' msgsIn=' + d.messagesReceived + ' bytesOut=' + d.bytesSent + ' bytesIn=' + d.bytesReceived);
+		}
+		lines.push('');
+		lines.push('--- Console log (' + persistentLogs.length + ' entries) ---');
+		for (const l of persistentLogs) lines.push('[' + l.time + '] ' + l.level.toUpperCase() + ': ' + l.msg);
+		return lines.join('\n');
+	}
+
+	let diagModal = null;
+	async function openDiagnosticModal() {
+		if (diagModal) return;
+		diagModal = document.createElement('div');
+		diagModal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4';
+		diagModal.innerHTML = `
+			<div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden border border-gray-200">
+				<div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+					<div class="flex items-center gap-3">
+						<i class="fas fa-stethoscope text-blue-600"></i>
+						<h2 class="text-lg font-semibold text-gray-900">Diagnose-Bericht</h2>
+					</div>
+					<button class="diag-close text-gray-500 hover:text-gray-900 text-xl px-2"><i class="fas fa-times"></i></button>
+				</div>
+				<div class="px-6 py-3 border-b border-gray-200 text-sm text-gray-600">
+					Bitte kopieren Sie diesen Bericht und senden Sie ihn an Ihren Ansprechpartner.
+				</div>
+				<div class="flex-1 overflow-hidden p-4">
+					<textarea id="diag-textarea" readonly
+						class="w-full h-full p-3 font-mono text-xs border border-gray-300 rounded-lg bg-gray-50 resize-none focus:outline-none"
+						style="min-height: 50vh;"></textarea>
+				</div>
+				<div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between gap-3">
+					<span id="diag-status" class="text-xs text-gray-500">Bericht wird erstellt…</span>
+					<div class="flex gap-2">
+						<button class="diag-refresh px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium">
+							<i class="fas fa-rotate-right mr-1"></i>Aktualisieren
+						</button>
+						<button class="diag-copy px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">
+							<i class="fas fa-copy mr-1"></i>Kopieren
+						</button>
+					</div>
+				</div>
+			</div>
+		`;
+		document.body.appendChild(diagModal);
+		const close = () => { if (diagModal) { diagModal.remove(); diagModal = null; } };
+		diagModal.addEventListener('click', (e) => { if (e.target === diagModal) close(); });
+		diagModal.querySelector('.diag-close').addEventListener('click', close);
+		diagModal.querySelector('.diag-refresh').addEventListener('click', () => refreshDiag());
+		diagModal.querySelector('.diag-copy').addEventListener('click', () => copyDiag());
+		await refreshDiag();
+	}
+	async function refreshDiag() {
+		const ta = document.getElementById('diag-textarea');
+		const status = document.getElementById('diag-status');
+		if (!ta) return;
+		if (status) status.textContent = 'Bericht wird erstellt…';
+		const report = await buildReport();
+		ta.value = report;
+		if (status) status.textContent = report.split('\n').length + ' Zeilen, ' + report.length + ' Zeichen';
+	}
+	async function copyDiag() {
+		const ta = document.getElementById('diag-textarea');
+		const status = document.getElementById('diag-status');
+		if (!ta) return;
+		try {
+			await navigator.clipboard.writeText(ta.value);
+			if (status) status.textContent = 'In Zwischenablage kopiert.';
+		} catch (e) {
+			ta.select();
+			try { document.execCommand('copy'); if (status) status.textContent = 'In Zwischenablage kopiert.'; }
+			catch (err) { if (status) status.textContent = 'Kopieren fehlgeschlagen — bitte manuell markieren.'; }
+		}
+	}
+
+	// --- DOM wiring ---
+
+	document.getElementById('join-form').addEventListener('submit', (e) => {
+		e.preventDefault();
+		const id = document.getElementById('join-id').value.trim();
+		if (!id) return;
+		startChat(id);
+	});
+
+	document.getElementById('chat-send').addEventListener('click', sendChatMessage);
+	document.getElementById('chat-input').addEventListener('keypress', (e) => {
+		if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+	});
+	document.getElementById('leave-btn').addEventListener('click', leaveChat);
+	document.getElementById('diagnostic-btn').addEventListener('click', openDiagnosticModal);
+
+	// Auto-join if ID is in the URL (page reload, deep link, bookmark)
+	const prefilledId = getQueryParam('ID') || getQueryParam('room');
+	if (prefilledId) startChat(prefilledId);
+
+	// Free the camera-mic icon and replace with chat icon in the consent dialog stub
+	// (Janus's consentDialog won't fire since we only attach textroom — no media).
+})();
+</script>
+
+</body>
+</html>

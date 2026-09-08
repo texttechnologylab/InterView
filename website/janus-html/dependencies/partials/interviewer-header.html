@@ -1,0 +1,49 @@
+<div class="fixed top-0 left-0 right-0 bg-white shadow-md z-40 px-6 py-3 flex items-center justify-between">
+	<div class="flex items-center space-x-4">
+		<div class="flex items-center space-x-2">
+			<div class="w-3 h-3 bg-orange-600 rounded-full animate-pulse"></div>
+			<h1 class="text-xl font-bold text-gray-800"><i class="fas fa-user-tie mr-2 text-purple-600"></i>Interviewer-Konsole</h1>
+		</div>
+		<span class="text-sm text-gray-500">ID:&nbsp;<span id="room-id-display" class="font-mono font-semibold text-gray-700"></span></span>
+		<span class="badge hide px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-800" id="you"></span>
+		<span id="record-dot" class="hide flex items-center space-x-1 text-red-600 text-sm font-semibold ml-2">
+			<span class="w-2 h-2 bg-red-600 rounded-full recording-pulse"></span><span>REC</span>
+		</span>
+
+		<!-- Answer-option delivery indicator. Hidden until the first batch is sent.
+		     "Optionen" labels what it tracks; the icon shows worst-case status
+		     (green=all received, grey=pending, amber=no confirmation); the count is
+		     acked/total. Hover or click reveals the per-batch dropdown. -->
+		<div class="relative">
+			<button id="answer-ack-chip" type="button"
+					class="hide ml-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700 border border-gray-200"
+					title="Status der gesendeten Antwortoptionen">
+				<i id="answer-ack-icon" class="fas fa-circle-check text-green-600"></i>
+				<span>Optionen</span>
+				<span id="answer-ack-count" class="font-mono text-xs text-gray-500">0/0</span>
+			</button>
+			<div id="answer-ack-dropdown"
+				 class="hide absolute left-0 top-full mt-2 w-72 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50 text-left"></div>
+		</div>
+	</div>
+	<div class="flex items-center space-x-3">
+		<button id="gaze-overlay-toggle"
+				data-overlay-text-tl="Heute ist gutes..."
+				data-overlay-text-br="...Wetter für ein Interview!"
+				class="px-4 py-2 bg-purple-100 hover:bg-purple-700 text-purple-700 hover:text-white rounded-lg font-medium shadow-sm flex items-center space-x-2">
+			<i class="fas fa-bullseye"></i><span>Kalibrierung</span>
+		</button>
+		<button id="send-followup"
+				class="px-4 py-2 bg-purple-600 hover:bg-[#860047] text-white rounded-lg font-medium shadow-sm flex items-center space-x-2">
+			<i class="fas fa-link"></i><span>Nachbefragung</span>
+		</button>
+		<button id="record-btn"
+				class="px-4 py-2 bg-orange-100 hover:bg-orange-700 text-orange-700 hover:text-white rounded-lg font-medium shadow-sm flex items-center space-x-2">
+			<i class="fas fa-circle text-red-600"></i><span class="record-label">Aufnehmen</span>
+		</button>
+		<button id="diagnostic-btn" type="button" title="Diagnose-Bericht anzeigen"
+				class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium shadow-sm flex items-center gap-2">
+			<i class="fas fa-stethoscope"></i><span class="hidden lg:inline">Diagnose</span>
+		</button>
+	</div>
+</div>

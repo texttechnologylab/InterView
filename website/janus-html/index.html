@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Interview Portal</title>
+<script src="/dependencies/js/tailwind_3.4.17.js"></script>
+<link rel="stylesheet" href="/dependencies/js/all.min.css" type="text/css"/>
+<link rel="stylesheet" href="css/demo.css" type="text/css"/>
+<style>
+	body {
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	}
+</style>
+</head>
+<body class="faces-home flex items-center justify-center p-6">
+
+<div class="w-full max-w-4xl">
+	<div class="text-center mb-10">
+		<div class="faces-home-eyebrow inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm mb-5">
+			<span class="h-2.5 w-2.5 rounded-full bg-orange-600"></span>
+			LIfBi FACES interview platform
+		</div>
+		<h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
+			<i class="fas fa-video mr-3 text-blue-600"></i>Interview-Portal
+		</h1>
+		<p class="text-gray-600 text-lg">Verbinden, interviewen und aufzeichnen in einer klaren, professionellen Umgebung.</p>
+	</div>
+
+	<div class="grid md:grid-cols-2 gap-6">
+		<!-- Interviewee Card -->
+		<div class="bg-white rounded-2xl shadow-2xl p-8">
+			<div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-5">
+				<i class="fas fa-user text-blue-600 text-2xl"></i>
+			</div>
+			<h2 class="text-2xl font-bold text-gray-800 mb-2">Ich bin Teilnehmer:in</h2>
+			<p class="text-gray-600 mb-6">Geben Sie die erhaltene ID ein, um an der Interview-Sitzung teilzunehmen.</p>
+			<form id="interviewee-form" class="space-y-4">
+				<div>
+					<label class="text-sm font-medium text-gray-700 block mb-1">Interview-ID</label>
+					<input
+						type="text"
+						id="interviewee-id"
+						required
+						placeholder="z. B. 1234"
+						class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"/>
+				</div>
+					<button type="submit" class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg">
+						<i class="fas fa-sign-in-alt mr-2"></i>Interview beitreten
+					</button>
+			</form>
+		</div>
+
+		<!-- Interviewer Card -->
+		<div class="bg-white rounded-2xl shadow-2xl p-8">
+			<div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-5">
+				<i class="fas fa-user-tie text-purple-600 text-2xl"></i>
+			</div>
+			<h2 class="text-2xl font-bold text-gray-800 mb-2">Ich bin Interviewer:in</h2>
+			<p class="text-gray-600 mb-6">Starten Sie eine Sitzung mit einer neuen ID oder treten Sie einer bestehenden Sitzung bei.</p>
+			<form id="interviewer-form" class="space-y-4">
+				<div>
+					<label class="text-sm font-medium text-gray-700 block mb-1">Interview-ID</label>
+					<div class="flex space-x-2">
+						<input
+							type="text"
+							id="interviewer-id"
+							required
+							placeholder="z. B. 1234"
+							class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-600 focus:outline-none"/>
+						<button type="button" id="generate-id" class="px-4 py-3 bg-orange-100 hover:bg-orange-700 text-orange-700 hover:text-white rounded-lg" title="Neue ID erzeugen">
+							<i class="fas fa-dice"></i>
+						</button>
+					</div>
+				</div>
+					<button type="submit" class="w-full px-6 py-3 bg-purple-600 hover:bg-[#860047] text-white rounded-lg font-medium transition-colors shadow-lg">
+						<i class="fas fa-play mr-2"></i>Sitzung starten
+					</button>
+			</form>
+		</div>
+	</div>
+
+	<p class="text-center text-gray-600 text-sm mt-8">
+		Bereitgestellt von Janus WebRTC.
+	</p>
+</div>
+
+<script>
+	function getQueryParam(name) {
+		const params = new URLSearchParams(window.location.search);
+		return params.get(name) || params.get(name.toUpperCase()) || '';
+	}
+
+	const prefilled = getQueryParam('ID');
+	if (prefilled) {
+		document.getElementById('interviewee-id').value = prefilled;
+	}
+
+	document.getElementById('interviewee-form').addEventListener('submit', (e) => {
+		e.preventDefault();
+		const id = document.getElementById('interviewee-id').value.trim();
+		if (id) window.location.href = `/interview?ID=${encodeURIComponent(id)}`;
+	});
+
+	document.getElementById('interviewer-form').addEventListener('submit', (e) => {
+		e.preventDefault();
+		const id = document.getElementById('interviewer-id').value.trim();
+		if (id) window.location.href = `/interviewer?ID=${encodeURIComponent(id)}`;
+	});
+
+	document.getElementById('generate-id').addEventListener('click', () => {
+		document.getElementById('interviewer-id').value = Math.floor(100000 + Math.random() * 900000);
+	});
+</script>
+
+</body>
+</html>

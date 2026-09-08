@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Interviewer-Konsole</title>
+
+<script src="/dependencies/js/adapter.min.js"></script>
+<script src="/dependencies/js/jquery.min.js"></script>
+<script src="/dependencies/js/jquery.blockUI.min.js"></script>
+<script src="/dependencies/js/bootbox.min.js"></script>
+<script src="/dependencies/js/toastr.min.js"></script>
+<script src="/dependencies/js/tailwind_3.4.17.js"></script>
+
+<link rel="stylesheet" href="/dependencies/js/all.min.css"/>
+<link rel="stylesheet" href="/dependencies/js/toastr.min.css"/>
+<link rel="stylesheet" href="css/demo.css" type="text/css"/>
+
+<script src="settings.js"></script>
+<script src="janus.js"></script>
+
+<script>
+	// Buffer label_listing posts that arrive before js/answer-options.js has
+	// registered the real listener. The iframe src is assigned synchronously
+	// while this document is parsed, but the module chain that handles those
+	// messages (DOMContentLoaded -> loadIncludes() -> setupAnswerOptionListener)
+	// only resolves after two network fetches. Anything the questionnaire posted
+	// in between used to be dropped with no trace at all.
+	//
+	// setupAnswerOptionListener drains this array and then nulls it, which is
+	// what tells this handler to stop buffering.
+	window.__facesLabelListingBuffer = [];
+	window.addEventListener('message', function (event) {
+		if (!window.__facesLabelListingBuffer) return; // real listener has taken over
+		var payload = event && event.data;
+		if (!payload || payload.event !== 'label_listing' || !payload.data) return;
+		window.__facesLabelListingBuffer.push({
+			source: event.source,
+			origin: event.origin,
+			data: payload.data
+		});
+	});
+</script>
+
+<style>
+	body {
+		margin: 0; padding: 0; overflow: hidden;
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	}
+</style>
+</head>
+<body class="faces-session faces-role-interviewer bg-gray-50">
+
+<div data-include="dependencies/partials/interviewer-header.html"></div>
+
+<!-- Main layout: questionnaire iframe + sidebar -->
+<div id="videos" class="flex" style="margin-top: 64px; height: calc(100vh - 64px);">
+
+	<!-- Main area: questionnaire iframe -->
+	<div class="flex-1 bg-gray-100 relative">
+		<iframe
+			data-base-url="https://survey.example.org/1259000"
+			class="w-full h-full border-0"
+			title="Interview Questionnaire"
+			id="questionnaire-iframe"></iframe>
+
+	</div>
+
+	<div data-include="dependencies/partials/interviewer-sidebar.html"></div>
+</div>
+
+<script>
+	window.INTERVIEW_ROLE = 'interviewer';
+	(function () {
+		const iframe = document.getElementById('questionnaire-iframe');
+		if (!iframe) return;
+		const params = new URLSearchParams(window.location.search);
+		const token = params.get('ID') || params.get('room') || params.get('id') || '';
+		const baseUrl = iframe.getAttribute('data-base-url') || '';
+		if (!baseUrl) return;
+		iframe.src = token ? (baseUrl + '?token=' + encodeURIComponent(token)) : baseUrl;
+	})();
+</script>
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>
