@@ -63,14 +63,15 @@ Unity and VR-side documentation lives in the
 
 For InterView, please cite:
 ```bibtex
-@misc{Schrottenbacher:et:al:2026,
+@misc{Schrottenbacher:et:al:2026:c,
+  author       = {Schrottenbacher, Patrick and Mehler, Alexander and Abrami, Giuseppe
+                  and Kleine, Lydia and Stingl, Doris},
   title        = {{InterView}: Towards a Unified {VR}-Capable Interview Environment},
-  author       = {Schrottenbacher, Patrick},
   year         = {2026},
-  note         = {Preprint},
-  howpublished = {SSRN},
-  doi          = {10.2139/ssrn.XXXXXXX},
-  url          = {https://ssrn.com/abstract=XXXXXXX}
+  howpublished = {SSRN preprint},
+  doi          = {10.2139/ssrn.7459949},
+  url          = {https://ssrn.com/abstract=7459949},
+  note         = {Under review}
 }
 ```
 

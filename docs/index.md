@@ -98,7 +98,22 @@ question possible.
 
 ## Citation
 
-InterView builds on Va.Si.Li-Lab. If you use it, please cite:
+If you use InterView, please cite:
+
+```bibtex
+@misc{Schrottenbacher:et:al:2026:c,
+  author       = {Schrottenbacher, Patrick and Mehler, Alexander and Abrami, Giuseppe
+                  and Kleine, Lydia and Stingl, Doris},
+  title        = {{InterView}: Towards a Unified {VR}-Capable Interview Environment},
+  year         = {2026},
+  howpublished = {SSRN preprint},
+  doi          = {10.2139/ssrn.7459949},
+  url          = {https://ssrn.com/abstract=7459949},
+  note         = {Under review}
+}
+```
+
+InterView builds on Va.Si.Li-Lab. For the VR platform, please also cite:
 
 ```bibtex
 @inproceedings{Mehler:et:al:2023:a,

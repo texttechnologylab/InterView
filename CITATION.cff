@@ -1,0 +1,93 @@
+cff-version: 1.2.0
+title: 'InterView: a VR-capable interview environment'
+message: 'If you use this software, please cite the paper below.'
+type: software
+authors:
+  - family-names: Schrottenbacher
+    given-names: Patrick
+    orcid: 'https://orcid.org/0009-0003-7644-0037'
+    affiliation: Goethe University Frankfurt
+  - family-names: Mehler
+    given-names: Alexander
+    orcid: 'https://orcid.org/0000-0003-2567-7539'
+    affiliation: Goethe University Frankfurt
+  - family-names: Abrami
+    given-names: Giuseppe
+    orcid: 'https://orcid.org/0000-0002-7084-4909'
+    affiliation: Goethe University Frankfurt
+repository-code: 'https://github.com/texttechnologylab/InterView'
+url: 'https://texttechnologylab.github.io/InterView/'
+abstract: >-
+  InterView is a platform for conducting survey interviews in virtual reality.
+  The participant wears a VR headset and sits across from the interviewer's
+  avatar; the interviewer works from a web browser. Speech, gaze, posture, hand
+  movement, facial expression and the answers are captured on a shared clock.
+  This repository contains the deployment stack (Janus, coturn, Ubiq, the
+  logging API and the web client) and the platform documentation. The VR client
+  is built on Va.Si.Li-Lab.
+keywords:
+  - virtual reality
+  - survey interviews
+  - multimodality
+  - Va.Si.Li-Lab
+license: AGPL-3.0-or-later
+preferred-citation:
+  type: generic
+  title: 'InterView: Towards a Unified VR-Capable Interview Environment'
+  authors:
+    - family-names: Schrottenbacher
+      given-names: Patrick
+      orcid: 'https://orcid.org/0009-0003-7644-0037'
+    - family-names: Mehler
+      given-names: Alexander
+      orcid: 'https://orcid.org/0000-0003-2567-7539'
+    - family-names: Abrami
+      given-names: Giuseppe
+      orcid: 'https://orcid.org/0000-0002-7084-4909'
+    - family-names: Kleine
+      given-names: Lydia
+    - family-names: Stingl
+      given-names: Doris
+  year: 2026
+  publisher:
+    name: SSRN
+  doi: 10.2139/ssrn.7459949
+  url: 'https://ssrn.com/abstract=7459949'
+  notes: Preprint, under review
+references:
+  - type: conference-paper
+    title: A Multimodal Data Model for Simulation-Based Learning with Va.Si.Li-Lab
+    authors:
+      - family-names: Mehler
+        given-names: Alexander
+      - family-names: Bagci
+        given-names: Mevlüt
+      - family-names: Henlein
+        given-names: Alexander
+      - family-names: Abrami
+        given-names: Giuseppe
+      - family-names: Spiekermann
+        given-names: Christian
+      - family-names: Schrottenbacher
+        given-names: Patrick
+      - family-names: Konca
+        given-names: Maxim
+      - family-names: Lücking
+        given-names: Andy
+      - family-names: Engel
+        given-names: Juliane
+      - family-names: Quintino
+        given-names: Marc
+      - family-names: Schreiber
+        given-names: Jakob
+      - family-names: Saukel
+        given-names: Kevin
+      - family-names: Zlatkin-Troitschanskaia
+        given-names: Olga
+    collection-title: Digital Human Modeling and Applications in Health, Safety, Ergonomics and Risk Management
+    publisher:
+      name: Springer Nature Switzerland
+    start: 539
+    end: 565
+    year: 2023
+    doi: 10.1007/978-3-031-35741-1_39
